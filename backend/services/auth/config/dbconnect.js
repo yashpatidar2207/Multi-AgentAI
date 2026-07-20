@@ -9,8 +9,9 @@ dns.setServers([
 const connectDB = async () =>{
     try {
         console.log(process.env.MONGODB_URL)
-        
+
         await mongoose.connect(process.env.MONGODB_URL)
+        console.log("Connection State:", mongoose.connection.readyState);
         console.log(`db connected`)
     } catch (error) {
         console.log(`db error ${error}`)
