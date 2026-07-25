@@ -14,6 +14,6 @@ app.get('/', (req, res)=>{
     return res.json({message : 'Auth service running'})
 })
 app.listen(port, (req,res)=>{
-    console.log(`Server is listening at port : ${port}`);
+    console.log(`Auth service running at port : ${port}`);
     connectDB()
 })

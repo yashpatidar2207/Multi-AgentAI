@@ -3,6 +3,8 @@ import dotenv from "dotenv"
 import cors from "cors"
 import proxy from "express-http-proxy";
 import cookieParser from "cookie-parser";
+import protectService from "./middleware/auth.middleware.js";
+import getCurrentUser from "./controllers/user.controller.js";
  
 dotenv.config();
 
@@ -18,7 +20,9 @@ app.use(cors({
 }))
 
 // Gateway redirector
-app.use("/auth",proxy(process.env.AUTH_SERVICE))
+app.use("/api/auth",proxy(process.env.AUTH_SERVICE))
+
+app.use("/api/me",protectService,getCurrentUser)
 app.get('/',(req,res)=>{
     return res.json({message:'msg gateway se'})
 })
