@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import Home from './pages/Home';
 import getCurrentUser from './features/getCurrentUser.js';
 import { useDispatch } from "react-redux";

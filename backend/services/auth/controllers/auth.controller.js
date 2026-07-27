@@ -4,12 +4,15 @@ import User from '../models/user.model.js';
 import crypto from "crypto"; 
 import mongoose from "mongoose";
 import redis from "../../../shared/redis/redis.js";
+
 export const login = async (req,res)=>{
     try {
+        console.log(req.body)
         const {token}= req.body
+
         const decode= await getAuth(app).verifyIdToken(token)
         //console.log(decode)
-        console.log("Before Query:", mongoose.connection.readyState);
+        //console.log("Before Query:", mongoose.connection.readyState);
         let user= await User.findOne(
             {firebaseUID:decode.uid}
         )
@@ -21,7 +24,7 @@ export const login = async (req,res)=>{
                 avatar:decode.picture
             })
         }
-
+        // create sessionId using crypto
         const sessionId=crypto.randomUUID();
         await redis.set(`session-${sessionId}`,JSON.stringify({
             userId:user._id,

@@ -21,9 +21,12 @@ app.use(cors({
 }))
 
 // Gateway redirector
+app.use("/api/me",protectService,getCurrentUser)
+
 app.use("/api/auth",proxy(process.env.AUTH_SERVICE))
 app.use("/api/chat",protectService,proxyWithHeader(process.env.CHAT_SERVICE))
-app.use("/api/me",protectService,getCurrentUser)
+app.use("/api/agents",protectService,proxy(process.env.CHAT_SERVICE))
+
 app.get('/',(req,res)=>{
     return res.json({message:'msg gateway se'})
 })
