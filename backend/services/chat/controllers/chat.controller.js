@@ -21,8 +21,8 @@ export const createConversation = async (req,res)=>{
         console.log(`userId-${userId}`)
         const conversation = await Conversation.create({
         userId:userId
-        }).sort({updatedAt: -1})
-        return res.status(200).json(conversations)
+        })
+        return res.status(200).json(conversation)
 
     } catch (error) {
         return res.status(500).json({message:`Error in createConversation - ${error}`})
