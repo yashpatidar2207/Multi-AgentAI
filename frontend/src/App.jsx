@@ -3,11 +3,12 @@ import Home from './pages/Home';
 import getCurrentUser from './features/getCurrentUser.js';
 import { useDispatch } from "react-redux";
 import {setUserData} from "./redux/userSlice.js"
+import { useLayoutEffect } from 'react';
 function App() {
 
   const dispatch = useDispatch()
 
-  useEffect(()=>{
+  useLayoutEffect(()=>{
     const getUser=async ()=>{
       const userData = await getCurrentUser()
       dispatch(setUserData(userData))
