@@ -34,7 +34,7 @@ function MessageList() {
       (
         <div>
           { messages?.map((message,i) => (
-            <div>
+            <div key={i}>
             <MessageBox role={message?.role}  content={message?.content}/>
             </div>
           ))

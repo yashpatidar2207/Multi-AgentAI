@@ -16,7 +16,7 @@ function ChatInput() {
     dispatch(addMessage({role:"user",content:value.trim()}))
     const data = await sendMessage(payload)
     setValue("")
-    dispatch(addMessage({role:"assistant",content:data.trim()}))
+    dispatch(addMessage({role:"assistant",content:data}))
     console.log(data)
   }
   return (
