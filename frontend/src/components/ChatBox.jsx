@@ -15,12 +15,13 @@ function ChatBox() {
   useEffect(() => {
     const getMsgs = async () => {
       if (selectedConversation) {
+        if(selectedConversation.title=="New Chat") return;
         const data = await getMessages(selectedConversation?._id)
         dispatch(setMessages(data))
       }
     }
     getMsgs()
-  }, [selectedConversation])
+  }, [selectedConversation?._id])
   return (
     <div className='flex-1 flex flex-col'>
       <Nav />

@@ -7,6 +7,15 @@ import { pptAgent } from './../allAgents/ppt.agent.js';
 import { imgGenAgent } from './../allAgents/imgGen.agent.js';
 
 export const router = async (state) =>{
+
+   // user selected any agent manually then no need to call llm, invoke graph
+    if(state.agent && state.agent!=="auto"){
+      return {
+         ...state,
+         agent:state.agent
+      }
+    }
+
     const llmAgent = await getModel("router")
     const prompt= `You are an AI agent Router.
 
