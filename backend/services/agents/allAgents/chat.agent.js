@@ -1,14 +1,33 @@
-import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages"
-import { getModel } from "../config/llmModels.js"
-import { getMemory } from "../config/memory.js"
+import {
+  AIMessage,
+  HumanMessage,
+  SystemMessage,
+} from "@langchain/core/messages";
+import { getModel } from "../config/llmModels.js";
+import { getMemory } from "../config/memory.js";
 
-export const chatAgent = async (state) =>{
-    const llm = await getModel("chat")
+export const chatAgent = async (state) => {
+  const llm = await getModel("chat");
 
-    const memoryHistory = await getMemory(state.conversationId)
+  const memoryHistory = await getMemory(state.conversationId);
 
-    const sysPrompt = `You are an AI agent Assistent.
+  const webSearchResults = state.webSearchResult
+    ? `
+    Web Search Results:
+    ${state.webSearchResult}
+    Answer the user using only the above search results.
+    `
+    : "";
+
+  const sysPrompt = `You are an AI agent Assistent built by Yash Patidar.
     
+    ${webSearchResults}
+
+    If webSearchResults exists:
+
+    - Use search results to answer.
+    - Do not mention internal tools.
+
     RESPONSE FORMATTING RULES:
 
 1. Always format your responses using valid Markdown.
@@ -67,25 +86,24 @@ export const chatAgent = async (state) =>{
 14. Make the final response visually clean, readable, and similar to a professional ChatGPT-style response.
 15. Never concatenate separate Markdown elements onto the same line.
 16. Prefer this structure for detailed answers:
-`
-    const messages = [
-        new SystemMessage(sysPrompt)
-    ]
-    memoryHistory.forEach(message => {
-        if(message.role==="user"){
-            messages.push(new HumanMessage(message.content))
-        }
-        if(message.role==="assistant"){
-            messages.push(new AIMessage(message.content))
-        }
-    });
+`;
+  const messages = [new SystemMessage(sysPrompt)];
+  memoryHistory.forEach((message) => {
+    if (!message || !message.content) return;
 
-    messages.push(new HumanMessage(state.prompt))
-    console.log(messages)
-    const response = await llm.invoke(messages)
-    return {
-        ...state,
-        aiResponse:response.content
+    if (message.role === "user") {
+      messages.push(new HumanMessage(message.content));
     }
+    if (message.role === "assistant") {
+      messages.push(new AIMessage(message.content));
+    }
+  });
 
-}
+  messages.push(new HumanMessage(state.prompt));
+  console.log(messages);
+  const response = await llm.invoke(messages);
+  return {
+    ...state,
+    aiResponse: response.content,
+  };
+};

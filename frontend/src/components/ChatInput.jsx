@@ -12,6 +12,7 @@ function ChatInput() {
   const [selectedAgent,setSelectedAgent]=useState("Auto")
   const {selectedConversation}=useSelector(state=>state.conversation)
   const dispatch = useDispatch();
+  
   const handleSendMessage = async ()=>{
 
     let conversation = selectedConversation
@@ -36,7 +37,7 @@ function ChatInput() {
     dispatch(addMessage({role:"user",content:value.trim()}))
     const data = await sendMessage(payload)
     setValue("")
-    dispatch(addMessage({role:"assistant",content:data}))
+    dispatch(addMessage({role:"assistant",content:data?.answer,images:data?.images}))
     console.log(data)
   }
 
