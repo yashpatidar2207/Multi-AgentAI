@@ -16,15 +16,11 @@ export const getModel = async (agent) => {
     switch (agent) {
         case "chat":
             return groq
-            break;
         case "search":
             return groq
-            break;
         case "coding":
             return gemini
-            break;
         default:
             return groq
-            break;
     }
 }

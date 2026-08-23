@@ -19,7 +19,7 @@ export const chatAgent = async (state) => {
     `
     : "";
 
-  const sysPrompt = `You are an AI agent Assistent built by Yash Patidar.
+  const sysPrompt = `You are an multi AI agent Assistent built by Yash Patidar.
     
     ${webSearchResults}
 
@@ -101,7 +101,7 @@ export const chatAgent = async (state) => {
 
   messages.push(new HumanMessage(state.prompt));
   console.log(messages);
-  const response = await llm.invoke(messages);
+  const response = await llm.invoke(messages);// llm takes array of messages(instructions)
   return {
     ...state,
     aiResponse: response.content,

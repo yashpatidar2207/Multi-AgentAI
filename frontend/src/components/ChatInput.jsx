@@ -1,8 +1,8 @@
-import { Code2Icon, FileTextIcon, Globe, GlobeIcon, Icon, ImagesIcon, MessageSquare, MessageSquareCheckIcon, Mic, MicOff, Paperclip, PresentationIcon, Send, Square, ZapIcon } from "lucide-react";
+import { Code2Icon, FileTextIcon, GlobeIcon, Icon, ImagesIcon, MessageSquare, Mic, MicOff, Paperclip, PresentationIcon, Send, ZapIcon } from "lucide-react";
 import React, { useState } from "react";
 import { useDispatch, useSelector } from 'react-redux';
 import sendMessage from "../features/sendMessage";
-import { addMessage } from "../redux/messageSlice";
+import { addMessage, setMessages } from "../redux/messageSlice.js";
 import { addConversation, setConversationTitle, setSelectedConversation } from "../redux/conversationSlice.js";
 import { createConversation} from './../features/createConversation.js';
 import { updateConversation } from "../features/updateConversation.js";
@@ -10,6 +10,7 @@ import { updateConversation } from "../features/updateConversation.js";
 function ChatInput() {
   const [value, setValue] = useState("");
   const [selectedAgent,setSelectedAgent]=useState("Auto")
+
   const {selectedConversation}=useSelector(state=>state.conversation)
   const dispatch = useDispatch();
   
@@ -18,6 +19,8 @@ function ChatInput() {
     let conversation = selectedConversation
 
     if(!conversation){
+      dispatch(setMessages([]))
+
       const conv = await createConversation()
       dispatch(setSelectedConversation(conv))
       dispatch(addConversation(conv))
@@ -25,8 +28,8 @@ function ChatInput() {
     }
 
     if(conversation?.title=="New Chat"){
-      await updateConversation({id:conversation?._id,title:value.trim()})
-      dispatch(setConversationTitle({conversationId:conversation?._id, title:value.slice(0,35)}))
+      await updateConversation({id:conversation?._id,title:value})
+      dispatch(setConversationTitle({conversationId:conversation?._id, title:value.slice(0,50)}))
     }
 
     const payload = {

@@ -8,14 +8,14 @@ import { imgGenAgent } from './../allAgents/imgGen.agent.js';
 
 export const router = async (state) =>{
 
-   // user selected any agent manually then no need to call llm, invoke graph
+   // user selected any agent manually then no need to call router llm only, invoke graph
     if(state.agent && state.agent!=="auto"){
       return {
          ...state,
          agent:state.agent
       }
     }
-
+    // default llm is groq(chat) so below "router" invoke groq model
     const llmAgent = await getModel("router")
     const prompt= `You are an AI agent Router.
 
@@ -32,6 +32,7 @@ Available Agents:
    - Questions that do NOT require web search, code execution, image generation, PDF analysis, or PPT creation.
 
 2. search
+   - current time, date, weather etc.
    - Latest news
    - Real-time information
    - Current events
@@ -78,7 +79,7 @@ Rules:
 - If the request is about image generation or editing, always choose Image.
 
 Output Rules:
-Return ONLY one of the following exact words:
+Return ONLY one of the following exact words in lowercase:
 
 chat
 search

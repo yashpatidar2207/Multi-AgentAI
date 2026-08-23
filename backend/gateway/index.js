@@ -13,6 +13,7 @@ dotenv.config();
 const port = process.env.PORT
 const app=express()
 
+// for cookies
 app.use(cookieParser())
 
 // cross origin 
@@ -22,6 +23,7 @@ app.use(cors({
 }))
 // api call logs
 app.use(morgan("dev"))
+
 // Gateway redirector
 app.use("/api/me",protectService,getCurrentUser)
 

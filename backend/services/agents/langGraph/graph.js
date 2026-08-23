@@ -12,26 +12,19 @@ const goRelativeAgent = async (state) =>{
     switch (state.agent) {
         case "chat":
             return "chat"
-            break;
         case "search":
             return "search"
-            break;
         case "coding":
             return "coding"
-            break;
         case "ppt":
             return "ppt"
-            break;
         case "pdf":
             return "pdf"
-            break;
         case "imgGen":
             return "imgGen"
-            break;
     
         default:
             return "search"
-            break;
     }
 }
 

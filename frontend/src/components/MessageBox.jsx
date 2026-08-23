@@ -1,4 +1,4 @@
-import { X, Check, Copy } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import React from "react";
 import { useState } from "react";
 import { FiExternalLink, FiX } from "react-icons/fi";
@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+
 function MessageBox({ role, content, images }) {
   const isUser = role === "user";
 
@@ -20,7 +21,7 @@ function MessageBox({ role, content, images }) {
     },2000)
   }
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"} pt-1`}>
+    <div className={`flex ${ isUser ? "justify-end" : "justify-start"} pt-1`}>
       <div
         className={`w-fit max-w-[92vw] md:max-w-[72%]
                   px-4 py-1 rounded-2xl
@@ -114,7 +115,7 @@ function MessageBox({ role, content, images }) {
                 />
               );
             },
-
+            // code markdown
             code({ className, children }) {
               console.log(children);
               const value = String(children)

@@ -13,13 +13,14 @@ export const agent = async (req,res) =>{
             content:prompt,
             role:"user",
         })
+        // graph takes a state and it flows throughout the workflow
         const result = await graph.invoke({
             prompt,
             conversationId,
             agent
         })
 
-        //add msg for agent memory (redis)
+        //add msg for agent memory (redis) after response
         await addMessage(conversationId,"user",prompt)
         await addMessage(conversationId,"assistant",result.aiResponse)
 

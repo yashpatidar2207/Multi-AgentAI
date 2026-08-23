@@ -13,12 +13,15 @@ function ChatBox() {
   const dispatch = useDispatch()
 
   useEffect(() => {
+    if(!selectedConversation || selectedConversation?.title=="New Chat") {
+      dispatch(setMessages([]))
+      return;
+    }
     const getMsgs = async () => {
-      if (selectedConversation) {
-        if(selectedConversation.title=="New Chat") return;
+        if (selectedConversation){
         const data = await getMessages(selectedConversation?._id)
         dispatch(setMessages(data))
-      }
+        }
     }
     getMsgs()
   }, [selectedConversation?._id])

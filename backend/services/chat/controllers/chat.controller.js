@@ -34,8 +34,8 @@ export const saveMessage = async (req,res) =>{
         const {conversationId,role,content,images} = req.body
     const message = await Message.create({
         conversationId,
-        content,
         role,
+        content,
         images
     })
     return res.status(200).json(message)

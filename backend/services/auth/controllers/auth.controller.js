@@ -12,7 +12,6 @@ export const login = async (req,res)=>{
 
         const decode= await getAuth(app).verifyIdToken(token)
         //console.log(decode)
-        //console.log("Before Query:", mongoose.connection.readyState);
         let user= await User.findOne(
             {firebaseUID:decode.uid}
         )
