@@ -22,7 +22,7 @@ export const agent = async (req,res) =>{
 
         //add msg for agent memory (redis) after response
         await addMessage(conversationId,"user",prompt)
-        await addMessage(conversationId,"assistant",result.aiResponse)
+        await addMessage(conversationId,"assistant",result?.aiResponse)
 
         await axios.post(`${process.env.CHAT_SERVICE}/save-message`,{
             conversationId,

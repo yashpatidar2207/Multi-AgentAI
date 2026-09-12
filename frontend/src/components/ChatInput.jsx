@@ -2,7 +2,7 @@ import { Code2Icon, FileTextIcon, GlobeIcon, Icon, ImagesIcon, MessageSquare, Mi
 import React, { useState } from "react";
 import { useDispatch, useSelector } from 'react-redux';
 import sendMessage from "../features/sendMessage";
-import { addMessage, setMessages } from "../redux/messageSlice.js";
+import { addMessage, setArtifacts, setMessages } from "../redux/messageSlice.js";
 import { addConversation, setConversationTitle, setSelectedConversation } from "../redux/conversationSlice.js";
 import { createConversation} from './../features/createConversation.js';
 import { updateConversation } from "../features/updateConversation.js";
@@ -40,6 +40,7 @@ function ChatInput() {
     dispatch(addMessage({role:"user",content:value.trim()}))
     const data = await sendMessage(payload)
     setValue("")
+    dispatch(setArtifacts(data?.artifacts || []))
     dispatch(addMessage({role:"assistant",content:data?.answer,images:data?.images}))
     console.log(data)
   }

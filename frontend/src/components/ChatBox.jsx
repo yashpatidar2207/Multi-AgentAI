@@ -4,7 +4,7 @@ import ChatInput from './ChatInput'
 import MessageList from './MessageList'
 import getMessages from './../features/getMessages.js';
 import { useSelector, useDispatch } from 'react-redux';
-import { setMessages } from '../redux/messageSlice.js';
+import { setArtifacts, setMessages } from '../redux/messageSlice.js';
 
 function ChatBox() {
   const { selectedConversation } = useSelector(
@@ -21,6 +21,10 @@ function ChatBox() {
         if (selectedConversation){
         const data = await getMessages(selectedConversation?._id)
         dispatch(setMessages(data))
+
+        const latestArtifactMsg = [...data].reverse()
+        .find(message=>message?.artifacts && message?.artifacts.length>0)
+        dispatch(setArtifacts(latestArtifactMsg?.artifacts || []))
         }
     }
     getMsgs()

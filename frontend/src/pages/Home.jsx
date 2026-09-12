@@ -1,4 +1,3 @@
-import React from 'react'
 import { FaGoogle } from "react-icons/fa";
 import { auth, googleProvider } from '../../utils/firebase.js';
 import { signInWithPopup } from 'firebase/auth';
@@ -7,7 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setUserData } from '../redux/userSlice.js';
 import SideBar from '../components/SideBar.jsx';
 import ChatBox from '../components/ChatBox.jsx';
-import Artifact from '../components/artifact.jsx';
+import Artifact from '../components/Artifact.jsx';
 function Home() {
     const {userData} = useSelector(state => state.user)
     const dispatch = useDispatch()

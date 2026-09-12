@@ -167,13 +167,16 @@ Rules:
 - Output must start with {
 - Output must end with }
 - No markdown
+- Always use real Unsplash images
 - No explanation
 - No extra text
 - No \`\`\`
 - Never mention intent
 
-User Request : ${state.prompt}
-            `;
+User Request : 
+${state.prompt}
+`;
+
         const res = await codingllm.invoke(prompt);
         const data = JSON.parse(res.content);
         console.log(data)
@@ -184,7 +187,8 @@ User Request : ${state.prompt}
                 {
                     id: Date.now(),
                     type: "project",
-                    files: data.files || []
+                    files: data?.files || [],
+                    title: state.prompt
                 }
             ]
         };
