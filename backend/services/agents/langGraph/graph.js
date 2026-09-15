@@ -20,8 +20,8 @@ const goRelativeAgent = async (state) =>{
             return "ppt"
         case "pdf":
             return "pdf"
-        case "imgGen":
-            return "imgGen"
+        case "image":
+            return "image"
     
         default:
             return "search"
@@ -36,7 +36,7 @@ workflow.addNode("search",searchAgent)
 workflow.addNode("coding",codingAgent)
 workflow.addNode("pdf",pdfAgent)
 workflow.addNode("ppt",pptAgent)
-workflow.addNode("imgGen",imgGenAgent)
+workflow.addNode("image",imgGenAgent)
 
 workflow.addEdge("__start__","router")
 workflow.addConditionalEdges("router",goRelativeAgent,{
@@ -45,7 +45,7 @@ workflow.addConditionalEdges("router",goRelativeAgent,{
     coding:"coding",
     ppt:"ppt",
     pdf:"pdf",
-    imgGen:"imgGen"
+    image:"image"
 })
 
 workflow.addEdge("search","chat")
@@ -53,6 +53,6 @@ workflow.addEdge("chat","__end__")
 workflow.addEdge("coding","__end__")
 workflow.addEdge("pdf","__end__")
 workflow.addEdge("ppt","__end__")
-workflow.addEdge("imgGen","__end__")
+workflow.addEdge("image","__end__")
 
 export const graph = workflow.compile()

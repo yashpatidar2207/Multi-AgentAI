@@ -1,12 +1,12 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3 } from "../config/awsS3.js";
 
-export const uploadToS3 = async (buffer, fileName, contentType) => {
+export const uploadToS3 = async (filename, buffer, contentType) => {
   await s3.send(
     new PutObjectCommand({
       Bucket: process.env.AWS_BUCKET_NAME,
 
-      Key: fileName,
+      Key: filename,
 
       Body: buffer,
 
@@ -14,5 +14,5 @@ export const uploadToS3 = async (buffer, fileName, contentType) => {
     }),
   );
 
-  return fileName;
+  return filename;
 };

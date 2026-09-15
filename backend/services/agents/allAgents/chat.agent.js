@@ -7,7 +7,9 @@ import { getModel } from "../config/llmModels.js";
 import { getMemory } from "../config/memory.js";
 
 export const chatAgent = async (state) => {
-  const llm = await getModel("chat");
+
+  try {
+    const llm = await getModel("chat");
 
   const memoryHistory = await getMemory(state.conversationId);
 
@@ -101,9 +103,18 @@ export const chatAgent = async (state) => {
 
   messages.push(new HumanMessage(state.prompt));
   console.log(messages);
-  const response = await llm.invoke(messages);// llm takes array of messages(instructions)
+  const response = await llm.invoke(messages); // llm takes array of messages(instructions)
   return {
     ...state,
     aiResponse: response.content,
   };
+  
+  } catch (error) {
+    console.log("Chat Agent Error:", error);
+    return {
+      ...state,
+      aiResponse: "❌ Failed to generate Response.",
+    };
+  }
+  
 };
