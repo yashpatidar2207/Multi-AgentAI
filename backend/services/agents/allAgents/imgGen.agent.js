@@ -44,7 +44,7 @@ import { generateImage } from "../config/mcp/imageGeneration.service.js";
 //     const filename = `image-${Date.now()}.png`;
 
 //     await uploadToS3(filename, buffer, "image/png");
-//     const downloadURL = await getFromS3(filename, 60 * 60);
+//     const downloadURL = await getFromS3(filename, 60 * 10);
 
 //     return {
 //       ...state,
@@ -194,7 +194,7 @@ export const imgGenAgent = async (state) => {
   await uploadToS3(filename, buffer, "image/jpeg");
 
   //5. S3 se url nikalo
-  const downloadURL = await getFromS3(filename, 60 * 60);
+  const downloadURL = await getFromS3(filename, 60 * 10);
 
   return {
       ...state,
