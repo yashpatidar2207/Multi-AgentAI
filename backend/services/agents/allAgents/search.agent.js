@@ -7,7 +7,7 @@ export const searchAgent = async (state) =>{
         query:state.prompt
      })  
 
-     console.log(result)
+    //  console.log(result)
      return {
         ...state,
         webSearchResults:JSON.stringify(result),

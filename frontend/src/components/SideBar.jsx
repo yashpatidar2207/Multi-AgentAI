@@ -11,15 +11,14 @@ import {
 } from "lucide-react";
 import { getConversations } from "../features/getConversations.js";
 import {
-  addConversation,
   setConversations,
   setSelectedConversation,
 } from "../redux/conversationSlice.js";
 import { setUserData } from "../redux/userSlice.js";
 import { useDispatch, useSelector } from "react-redux";
-import { createConversation } from "../features/createConversation.js";
 import logOut from "../features/logOut.js";
 import { setMessages } from "../redux/messageSlice.js";
+import BillingPage from "./BillingPage.jsx";
 function SideBar() {
   const dispatch = useDispatch();
   const { conversations, selectedConversation } = useSelector(
@@ -29,6 +28,7 @@ function SideBar() {
 
   const [collapsed, setCollapsed] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [showBilling, setShowBilling] = useState(false);
 
   const handleNewChat = () =>{
     dispatch(setSelectedConversation(null))
@@ -212,7 +212,10 @@ function SideBar() {
                 </p>
               </div>
               <div className="flex gap-1">
-                <button className="flex items-center justify-center w-7 h-7 rounded-[15px] border-none bg-transparent text-yellow-600 cursor-pointer hover:bg-white/[0.08] hover:text-slate-400 transition-all duration-150">
+                <button 
+                onClick={()=>setShowBilling(true)}
+                className="flex items-center justify-center w-7 h-7 rounded-[15px] border-none bg-transparent text-yellow-600 cursor-pointer hover:bg-white/[0.08] hover:text-slate-400 transition-all duration-150">
+                
                   <Coins size={20} />
                 </button>
                 <button
@@ -235,6 +238,7 @@ function SideBar() {
           )}
         </div>
       </div>
+      <BillingPage open={showBilling} onClose={()=>setShowBilling(false)}/>
     </div>
   );
 }

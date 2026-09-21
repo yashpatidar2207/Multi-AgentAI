@@ -30,7 +30,7 @@ app.use("/api/me",protectService,getCurrentUser)
 app.use("/api/auth",proxy(process.env.AUTH_SERVICE))
 app.use("/api/chat",protectService,proxyWithHeader(process.env.CHAT_SERVICE))
 app.use("/api/agents",protectService,proxy(process.env.AGENTS_SERVICE))
-
+app.use("/api/billing",protectService,proxyWithHeader(process.env.BILLING_SERVICE))
 app.get('/',(req,res)=>{
     return res.json({message:'msg gateway se'})
 })
