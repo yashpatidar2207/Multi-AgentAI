@@ -25,10 +25,10 @@ export const login = async (req, res) => {
     const sessionId = crypto.randomUUID();
 
     await redis.set(
-      `user-session:${user._id}`,
+      `user-session:${user?._id}`,
       sessionId,
       "EX",
-      60 * 60 * 24 * 7,
+      60 * 60 * 24 * 7 * 1000,
     );
 
     await redis.set(
@@ -38,6 +38,10 @@ export const login = async (req, res) => {
         name: user.name,
         email: user.email,
         avatar: user.avatar,
+        plan: user.plan,
+        credits: user.credits,
+        totalCredits: user.totalCredits,
+        planExpiresAt: user.planExpiresAt,
       }),
       "EX",
       7 * 24 * 60 * 60 * 1000,
@@ -70,7 +74,6 @@ export const logOut = async (req, res) => {
 
 export const updateUserPlan = async (req, res) => {
   try {
-    
     const { userId, plan, credits } = req.body;
     const user = await User.findById(userId);
 
@@ -84,11 +87,11 @@ export const updateUserPlan = async (req, res) => {
     user.planExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     await user.save();
 
-    const sessionId = await redis.get(`user-session:${user._id}`);
+    const sessionId = await redis.get(`user-session:${user?._id}`);
 
     if (sessionId) {
       await redis.set(
-        `session:${sessionId}`,
+        `session-${sessionId}`,
 
         JSON.stringify({
           userId: user._id,
@@ -98,14 +101,14 @@ export const updateUserPlan = async (req, res) => {
           plan: user.plan,
           credits: user.credits,
           totalCredits: user.totalCredits,
-          planExpiresAt: user.planExpiresAt
+          planExpiresAt: user.planExpiresAt,
         }),
         "EX",
         60 * 60 * 24 * 7,
       );
     }
     return res.status(200).json({
-      success: true
+      success: true,
     });
   } catch (error) {
     console.log(error);

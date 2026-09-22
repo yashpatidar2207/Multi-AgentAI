@@ -5,6 +5,13 @@ const paymentSchema = new mongoose.Schema({
         type:String,
         required:true
     },
+    orderId:{
+
+    type:String,
+
+    required:true
+
+  },
     paymentId:String,
     amount:Number,
     currency:{

@@ -24,17 +24,11 @@ export const createOrder = async (req, res) => {
 
     await Payment.create({
       userId: userId,
-
       orderId: order?.id,
-
       amount: selectedPlan?.amount,
-
       credits: selectedPlan?.credits,
-
       plan: selectedPlan?.id,
-
       currency: order?.currency,
-
       status: "created",
     });
 
@@ -53,19 +47,18 @@ export const verifyPayment = async (req, res) => {
   try {
     const {
       razorpay_order_id,
-
       razorpay_payment_id,
-
-      razorpay_signature,
+      razorpay_signature
     } = req.body;
-
+    
     //1. Verify signature
     const generatedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest("hex");
+      
 
-    if (generatedSignature !== razorpay_signature) {
+    if (generatedSignature != razorpay_signature) {
       return res.status(400).json({
         message: "Payment verification failed",
       });
@@ -76,6 +69,7 @@ export const verifyPayment = async (req, res) => {
       orderId: razorpay_order_id,
     });
 
+    console.log(existingPayment)
     if (!existingPayment) {
       return res.status(404).json({
         message: "Payment not found",
