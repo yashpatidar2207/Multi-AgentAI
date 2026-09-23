@@ -1,3 +1,4 @@
+import { deductUserCredits } from "../utils/deductUserCredits.js";
 import { getModel } from "./../config/llmModels.js";
 
 export const codingAgent = async (state) => {
@@ -182,6 +183,7 @@ ${state.prompt}
         const res = await codingllm.invoke(prompt);
         const data = JSON.parse(res.content);
         console.log(data)
+        await deductUserCredits(state.userId,"coding")
         return {
             ...state,
             aiResponse: "Your Code has been generated successfully.😎",
@@ -221,6 +223,8 @@ ${state.prompt}
         `)
 
         const data = res.content
+
+        await deductUserCredits(state.userId,"coding")
 
         return {
             ...state,

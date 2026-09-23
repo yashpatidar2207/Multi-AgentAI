@@ -2,6 +2,7 @@ import generatePDF from "../utils/generatePDF.js";
 import { getModel } from "./../config/llmModels.js";
 import { uploadToS3 } from './../utils/uploadToS3.js';
 import { getFromS3 } from './../utils/getFromS3.js';
+import { deductUserCredits } from "../utils/deductUserCredits.js";
 
 export const pdfAgent = async (state) => {
   try {
@@ -99,6 +100,8 @@ ${state.prompt}
         await uploadToS3(filename,pdfBuffer,"application/pdf")
 
         const downloadURL = await getFromS3(filename,24*10)
+
+        await deductUserCredits(state.userId,"pdf")
 
         return {
             ...state,

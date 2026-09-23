@@ -1,4 +1,5 @@
 import { webSearchTool } from "../config/tools/tavily.js"
+import { deductUserCredits } from "../utils/deductUserCredits.js"
 
 export const searchAgent = async (state) =>{
 
@@ -7,7 +8,8 @@ export const searchAgent = async (state) =>{
         query:state.prompt
      })  
 
-    //  console.log(result)
+     const data = await deductUserCredits(state.userId,"search")
+    //   console.log(data)
      return {
         ...state,
         webSearchResults:JSON.stringify(result),

@@ -3,6 +3,7 @@ import axios from "axios";
 import { uploadToS3 } from "./../utils/uploadToS3.js";
 import { getFromS3 } from "./../utils/getFromS3.js";
 import { generateImage } from "../config/mcp/imageGeneration.service.js";
+import { deductUserCredits } from "../utils/deductUserCredits.js";
 
 // export const imgGenAgent = async (state) => {
 //   try {
@@ -195,6 +196,8 @@ export const imgGenAgent = async (state) => {
 
   //5. S3 se url nikalo
   const downloadURL = await getFromS3(filename, 60 * 10);
+
+  await deductUserCredits(state.userId,"image")
 
   return {
       ...state,

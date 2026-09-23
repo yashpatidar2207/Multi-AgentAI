@@ -5,6 +5,7 @@ export const agentState = Annotation.Root({
     aiResponse:Annotation(),
     agent:Annotation(), // which agent is decided by router
     conversationId:Annotation(), // to get the memory of previous conversation
+    userId:Annotation(),
     webSearchResults:Annotation(),
     webImages:Annotation(),
     artifacts:Annotation()

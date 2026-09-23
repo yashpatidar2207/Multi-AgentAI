@@ -5,6 +5,7 @@ import {
 } from "@langchain/core/messages";
 import { getModel } from "../config/llmModels.js";
 import { getMemory } from "../config/memory.js";
+import { deductUserCredits } from "../utils/deductUserCredits.js";
 
 export const chatAgent = async (state) => {
 
@@ -104,6 +105,8 @@ export const chatAgent = async (state) => {
   messages.push(new HumanMessage(state.prompt));
   console.log(messages);
   const response = await llm.invoke(messages); // llm takes array of messages(instructions)
+  
+  await deductUserCredits(state.userId,"chat")
   return {
     ...state,
     aiResponse: response.content,
