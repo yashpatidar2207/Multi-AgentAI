@@ -8,6 +8,7 @@ export const agent = async (req,res) =>{
     try {
         const userId = req.headers["x-user-id"]
         const file = req.file;
+        console.log("first:", file)
         const {conversationId,prompt,agent} = req.body
 
         await axios.post(`${process.env.CHAT_SERVICE}/save-message`,{

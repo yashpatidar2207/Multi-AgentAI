@@ -6,6 +6,7 @@ import { deductUserCredits } from "../utils/deductUserCredits.js";
 export const imageAnalyzerAgent = async (state) => {
   const filePath = state.file.path;
   const mimeType = state.file.mimetype;
+
   const userPrompt =
     state.prompt || "Analyze this image and describe what you see.";
 
@@ -63,8 +64,7 @@ Always prioritize visual evidence from the provided image over assumptions.
         ],
       }),
     ];
-
-    const result = await imageAnalyzerLLM.invoke([messages]);
+    const result = await imageAnalyzerLLM.invoke(messages);
 
     // Gemini successfully analyzed the image
     const response = result.content;

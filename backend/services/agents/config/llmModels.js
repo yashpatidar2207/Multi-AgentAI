@@ -1,15 +1,15 @@
 import { ChatGroq } from "@langchain/groq"
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai"
 import { ChatOpenRouter } from "@langchain/openrouter";
-
 const openrouter = new ChatOpenRouter({
   model: "deepseek/deepseek-chat",
+  apiKey: process.env.OPENROUTER_API_KEY,
   temperature: 0,
   maxTokens: 2500
 });
 
 const gemini = new ChatGoogleGenerativeAI({
-    model: "gemini-2.5-flash",
+    model: "gemini-3.8-flash",
     apiKey: process.env.GOOGLE_API_KEY
 })
 

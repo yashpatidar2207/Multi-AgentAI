@@ -5,19 +5,21 @@ import { codingAgent } from './../allAgents/coding.agent.js';
 import { pdfAgent } from './../allAgents/pdf.agent.js';
 import { pptAgent } from './../allAgents/ppt.agent.js';
 import { imgGenAgent } from './../allAgents/imgGen.agent.js';
-import { pdfRAGAgent } from './../allAgents/pdfRAG.agent';
+import { pdfRAGAgent } from './../allAgents/pdfRAG.agent.js';
 
 export const router = async (state) =>{
 
-   const fileType = state.file.mimetpe
-   if (fileType === "application/pdf") {
+   const fileType = state.file?.mimetype
+   console.log("file------",state.file)
+   console.log("file ka type ",fileType)
+   if (fileType && fileType.trim() === "application/pdf") {
     return {
       ...state,
       agent: "pdfRAG"
     }
 }
 
-if (fileType.startsWith("image/")) {
+if (fileType && fileType.trim().startsWith("image/")) {
     return {
       ...state,
       agent: "imageAnalyzer"

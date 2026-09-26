@@ -1,15 +1,16 @@
 import { Code2Icon, FileTextIcon, GlobeIcon, Icon, ImagesIcon, MessageSquare, Mic, MicOff, Paperclip, PresentationIcon, Send, ZapIcon } from "lucide-react";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useDispatch, useSelector } from 'react-redux';
 import sendMessage from "../features/sendMessage";
 import { addMessage, setArtifacts, setMessages } from "../redux/messageSlice.js";
 import { addConversation, setConversationTitle, setSelectedConversation } from "../redux/conversationSlice.js";
 import { createConversation} from './../features/createConversation.js';
 import { updateConversation } from "../features/updateConversation.js";
-
 function ChatInput() {
   const [value, setValue] = useState("");
   const [selectedAgent,setSelectedAgent]=useState("Auto")
+  const [selectedFile,setSelectedFile] = useState(null)
+  const fileRef = useRef(null)
 
   const {selectedConversation}=useSelector(state=>state.conversation)
   const dispatch = useDispatch();
@@ -32,13 +33,14 @@ function ChatInput() {
       dispatch(setConversationTitle({conversationId:conversation?._id, title:value.slice(0,50)}))
     }
 
-    const payload = {
-      prompt:value.trim(),
-      conversationId:conversation?._id,
-      agent:selectedAgent.toLowerCase()
-    }
+    const formData = new FormData()
+    formData.append("prompt",value.trim())
+    formData.append("conversationId",conversation?._id)
+    formData.append("agent",selectedAgent.toLowerCase())
+    formData.append("file",selectedFile)
+
     dispatch(addMessage({role:"user",content:value.trim()}))
-    const data = await sendMessage(payload)
+    const data = await sendMessage(formData)
     setValue("")
     dispatch(setArtifacts(data?.artifacts || []))
     dispatch(addMessage({role:"assistant",content:data?.answer,images:data?.images}))
@@ -154,11 +156,20 @@ function ChatInput() {
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
-            <button className="flex items-center justify-center w-8 h-8 rounded-lg text-slate-600 hover:text-slate-400 hover:bg-white/[0.05] border border-transparent hover:border-white/[0.06] transition-all duration-150 bg-transparent cursor-pointer">
-              <Paperclip size={14} />
+          <input type="file" accept=".pdf,image/*" hidden ref={fileRef} 
+          onChange={(e)=>{
+            const file = e.target.files[0]
+            if(file){
+              setSelectedFile(file)
+            } 
+          }} />
+            <button className="flex items-center justify-center w-8 h-8 rounded-lg text-slate-600 hover:text-slate-400 hover:bg-white/[0.05] border border-transparent hover:border-white/[0.06] transition-all duration-150 bg-transparent cursor-pointer
+            "
+            onClick={()=>fileRef.current.click()}>
+              <Paperclip size={16} />
             </button>
             <button className="flex items-center justify-center w-8 h-8 rounded-lg transition-all cursor-pointer">
-              <Mic size={14} />
+              <Mic size={16} />
             </button>
           </div>
           <button
