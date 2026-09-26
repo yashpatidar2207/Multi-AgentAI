@@ -7,6 +7,7 @@ export const agent = async (req,res) =>{
 
     try {
         const userId = req.headers["x-user-id"]
+        const file = req.file;
         const {conversationId,prompt,agent} = req.body
 
         await axios.post(`${process.env.CHAT_SERVICE}/save-message`,{
@@ -19,7 +20,8 @@ export const agent = async (req,res) =>{
             prompt,
             conversationId,
             agent,
-            userId
+            userId,
+            file
         })
 
         //add msg for agent memory (redis) after response

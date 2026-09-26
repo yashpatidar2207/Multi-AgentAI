@@ -26,6 +26,9 @@ export const getModel = async (agent) => {
             return groq
         case "coding":
             return openrouter
+        case "imageAnalyzer":
+            return gemini
+
         default:
             return groq
     }

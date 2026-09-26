@@ -5,9 +5,24 @@ import { codingAgent } from './../allAgents/coding.agent.js';
 import { pdfAgent } from './../allAgents/pdf.agent.js';
 import { pptAgent } from './../allAgents/ppt.agent.js';
 import { imgGenAgent } from './../allAgents/imgGen.agent.js';
+import { pdfRAGAgent } from './../allAgents/pdfRAG.agent';
 
 export const router = async (state) =>{
 
+   const fileType = state.file.mimetpe
+   if (fileType === "application/pdf") {
+    return {
+      ...state,
+      agent: "pdfRAG"
+    }
+}
+
+if (fileType.startsWith("image/")) {
+    return {
+      ...state,
+      agent: "imageAnalyzer"
+    }
+}
    // user selected any agent manually then no need to call router llm only, invoke graph
     if(state.agent && state.agent!=="auto"){
       return {

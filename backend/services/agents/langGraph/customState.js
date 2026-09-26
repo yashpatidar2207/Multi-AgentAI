@@ -8,5 +8,6 @@ export const agentState = Annotation.Root({
     userId:Annotation(),
     webSearchResults:Annotation(),
     webImages:Annotation(),
-    artifacts:Annotation()
+    artifacts:Annotation(),
+    file:Annotation()
 })
