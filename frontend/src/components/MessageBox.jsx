@@ -1,202 +1,530 @@
 import { Check, Copy } from "lucide-react";
-import React from "react";
-import { useState } from "react";
+
+import React, { useEffect, useState } from "react";
+
 import { FiExternalLink, FiX } from "react-icons/fi";
+
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
-function MessageBox({ role, content, images }) {
+function MessageBox({ role, content, images = [], isLoading = false }) {
   const isUser = role === "user";
 
   const [lightBox, setLightBox] = useState(null);
+
   const [copiedCode, setCopiedCode] = useState("");
 
-  const copyCode = async(code)=>{
-    await navigator.clipboard.writeText(code)
-    setCopiedCode(code)    
-    setTimeout (()=>{
-      setCopiedCode("")
-    },2000)
-  }
-  return (
-    <div className={`flex ${ isUser ? "justify-end" : "justify-start"} pt-1`}>
-      <div
-        className={`w-fit max-w-[92vw] md:max-w-[72%]
-                  px-4 py-1 rounded-2xl
-                  break-words overflow-hidden
-                  leading-relaxed
-        ${
-          isUser
-            ? "bg-gradient-to-br from-indigo-400 to-indigo-600 text-white rounded-tr-sm"
-            : "bg-gradient-to-br from-gray-500 to-gray-700 text-slate-200 rounded-tl-sm"
-        }`}
-      >
-        {images.length > 0 && (
-          <div className="flex flex-wrap gap-3 mt-4">
-            {images.map((image, i) => (
-              <img
-                key={i}
-                src={image}
-                onClick={() => setLightBox(image)}
-                onError={(e) => e.currentTarget.remove()}
-                loading="lazy"
-                className="w-40 h-28 rounded-xl object-cover border border-white/10 cursor-zoom-in hover:opacity-90 transition"
-              />
-            ))}
-          </div>
-        )}
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={{
-            h1: ({ children }) => (
-              <h1 className="text-2xl font-bold mt-5 mb-3">{children}</h1>
-            ),
+  const [thinkingStage, setThinkingStage] = useState(0);
 
-            h2: ({ children }) => (
-              <h2 className="text-xl font-semibold mt-4 mb-2">{children}</h2>
-            ),
+  const thinkingStages = [
+    "Thinking",
+    "Analyzing",
+    "Retrieving",
+    "Processing",
+    "Generating",
+  ];
 
-            h3: ({ children }) => (
-              <h3 className="text-lg font-semibold mt-3 mb-2">{children}</h3>
-            ),
+  useEffect(() => {
+    if (!isLoading) {
+      setThinkingStage(0);
+      return;
+    }
 
-            p: ({ children }) => (
-              <p className="mb-3 whitespace-pre-wrap break-words">{children}</p>
-            ),
+    const interval = setInterval(() => {
+      setThinkingStage((previous) => (previous + 1) % thinkingStages.length);
+    }, 1200);
 
-            ul: ({ children }) => (
-              <ul className="list-disc pl-5 space-y-1 my-2">{children}</ul>
-            ),
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
-            ol: ({ children }) => (
-              <ol className="list-decimal pl-5 space-y-1 my-2">{children}</ol>
-            ),
+  const copyCode = async (code) => {
+    try {
+      await navigator.clipboard.writeText(code);
 
-            table: ({ children }) => (
-              <div className="overflow-x-auto my-4">
-                <table className="min-w-full border border-white/10">
-                  {children}
-                </table>
-              </div>
-            ),
+      setCopiedCode(code);
 
-            th: ({ children }) => (
-              <th className="border border-white/10 bg-white/5 px-3 py-2 text-left">
-                {children}
-              </th>
-            ),
+      setTimeout(() => {
+        setCopiedCode("");
+      }, 2000);
+    } catch (error) {
+      console.error("Copy failed:", error);
+    }
+  };
 
-            td: ({ children }) => (
-              <td className="border border-white/10 px-3 py-2">{children}</td>
-            ),
-            a: ({ href, children }) => (
-              <a
-                href={href}
-                target="_blank"
-                rel="noreferrer"
-                className="text-indigo-400 underline inline-flex items-center gap-1"
-              >
-                {children}
-                <FiExternalLink size={11} />
-              </a>
-            ),
-            img: ({ src }) => {
-              if (!src) return null;
+  /* =====================================================
+     LOADING MESSAGE
+  ===================================================== */
 
-              return (
-                <img
-                  src={src}
-                  loading="lazy"
-                  onClick={() => setLightBox(src)}
-                  onError={(e) => e.currentTarget.remove()}
-                  className="w-40 h-28 rounded-xl object-cover cursor-pointer"
-                />
-              );
-            },
-            // code markdown
-            code({ className, children }) {
-              console.log(children);
-              const value = String(children)
-                .replace(/^\s*```[^\n]*\n/, "")
-                .replace(/\n```\s*$/, "")
-                .trim();
+  if (isLoading) {
+    return (
+      <div className="flex justify-start pt-1">
+        <div
+          className="
+            flex
+            items-center
+            gap-2
 
-              if (!className) {
-                return (
-                  <code className="px-1.5 py-0.5 rounded bg-white/10 text-violet-300">
-                    {value}
-                  </code>
-                );
-              }
+            px-3.5
+            sm:px-4
 
-              const language = className.replace("language-", "");
+            py-2.5
 
-              return (
-                <div className="my-4 overflow-hidden rounded-xl border border-white/10 bg-[#111318]">
-                  <div className="flex items-center justify-between bg-[#1b1d24] border-b border-white/10 px-4 py-2">
-                    <span className="uppercase text-xs text-slate-400">
-                      {language}
-                    </span>
+            rounded-2xl
+            rounded-tl-sm
 
-                    <button
-                      onClick={() => copyCode(value)}
-                      className="flex items-center gap-1 text-xs cursor-pointer hover:text-indigo-400"
-                    >
-                      {copiedCode === value ? (
-                        <>
-                          <Check size={14} />
-                          Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={14} />
-                          Copy
-                        </>
-                      )}
-                    </button>
-                  </div>
+            bg-gradient-to-br
+            from-gray-500
+            to-gray-700
 
-                  <SyntaxHighlighter
-                    language={language}
-                    style={oneDark}
-                    wrapLongLines
-                    showLineNumbers
-                    customStyle={{
-                      margin: 0,
-                      padding: "16px",
-                      background: "#0d1117",
-                      fontSize: "13px",
-                    }}
-                  >
-                    {value}
-                  </SyntaxHighlighter>
-                </div>
-              );
-            },
-          }}
+            text-slate-200
+
+            border
+            border-white/[0.05]
+
+            shadow-sm
+          "
         >
-          {content}
-        </ReactMarkdown>
+          {/* Animated dots */}
+          <div className="flex items-center gap-1">
+            <span
+              className="
+                w-1.5
+                h-1.5
+                rounded-full
+                bg-indigo-300
+                animate-pulse
+              "
+            />
+
+            <span
+              className="
+                w-1.5
+                h-1.5
+                rounded-full
+                bg-indigo-300
+                animate-pulse
+                [animation-delay:150ms]
+              "
+            />
+
+            <span
+              className="
+                w-1.5
+                h-1.5
+                rounded-full
+                bg-indigo-300
+                animate-pulse
+                [animation-delay:300ms]
+              "
+            />
+          </div>
+
+          <span
+            className="
+              text-[11px]
+              sm:text-[13px]
+
+              text-slate-300
+
+              min-w-[80px]
+
+              transition-all
+              duration-300
+            "
+          >
+            {thinkingStages[thinkingStage]}
+
+            <span className="inline-block w-5">...</span>
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div
+        className={`
+          flex
+
+          ${isUser ? "justify-end" : "justify-start"}
+
+          pt-1
+        `}
+      >
+        <div
+          className={`
+            w-fit
+
+            max-w-[92vw]
+            sm:max-w-[85%]
+            md:max-w-[72%]
+
+            px-3.5
+            sm:px-4
+
+            py-2
+
+            rounded-2xl
+
+            break-words
+            overflow-hidden
+
+            leading-relaxed
+
+            ${
+              isUser
+                ? "bg-gradient-to-br from-indigo-400 to-indigo-600 text-white rounded-tr-sm"
+                : "bg-gradient-to-br from-gray-500 to-gray-700 text-slate-200 rounded-tl-sm"
+            }
+          `}
+        >
+          {/* GENERATED IMAGES */}
+          {images.length > 0 && (
+            <div
+              className="
+                flex
+                flex-wrap
+
+                gap-2
+
+                mt-2
+              "
+            >
+              {images.map((image, index) => (
+                <img
+                  key={index}
+                  src={image}
+                  alt={`generated-${index}`}
+                  onClick={() => setLightBox(image)}
+                  onError={(event) => event.currentTarget.remove()}
+                  loading="lazy"
+                  className="
+                      w-28
+                      h-20
+
+                      sm:w-40
+                      sm:h-28
+
+                      rounded-xl
+
+                      object-cover
+
+                      border
+                      border-white/10
+
+                      cursor-zoom-in
+
+                      hover:opacity-90
+
+                      transition
+                    "
+                />
+              ))}
+            </div>
+          )}
+
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              h1: ({ children }) => (
+                <h1 className="text-xl sm:text-2xl font-bold mt-5 mb-3">
+                  {children}
+                </h1>
+              ),
+
+              h2: ({ children }) => (
+                <h2 className="text-lg sm:text-xl font-semibold mt-4 mb-2">
+                  {children}
+                </h2>
+              ),
+
+              h3: ({ children }) => (
+                <h3 className="text-base sm:text-lg font-semibold mt-3 mb-2">
+                  {children}
+                </h3>
+              ),
+
+              p: ({ children }) => (
+                <p className="mb-3 whitespace-pre-wrap break-words">
+                  {children}
+                </p>
+              ),
+
+              ul: ({ children }) => (
+                <ul className="list-disc pl-5 space-y-1 my-2">{children}</ul>
+              ),
+
+              ol: ({ children }) => (
+                <ol className="list-decimal pl-5 space-y-1 my-2">{children}</ol>
+              ),
+
+              table: ({ children }) => (
+                <div className="overflow-x-auto my-4">
+                  <table className="min-w-full border border-white/10">
+                    {children}
+                  </table>
+                </div>
+              ),
+
+              th: ({ children }) => (
+                <th className="border border-white/10 bg-white/5 px-3 py-2 text-left">
+                  {children}
+                </th>
+              ),
+
+              td: ({ children }) => (
+                <td className="border border-white/10 px-3 py-2">{children}</td>
+              ),
+
+              a: ({ href, children }) => (
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="
+                    text-indigo-400
+                    underline
+                    inline-flex
+                    items-center
+                    gap-1
+                  "
+                >
+                  {children}
+
+                  <FiExternalLink size={11} />
+                </a>
+              ),
+
+              img: ({ src }) => {
+                if (!src) return null;
+
+                return (
+                  <img
+                    src={src}
+                    alt="markdown"
+                    loading="lazy"
+                    onClick={() => setLightBox(src)}
+                    onError={(event) => event.currentTarget.remove()}
+                    className="
+                      max-w-full
+
+                      sm:w-40
+                      sm:h-28
+
+                      rounded-xl
+
+                      object-cover
+
+                      cursor-pointer
+                    "
+                  />
+                );
+              },
+
+              code({ className, children }) {
+                const value = String(children)
+                  .replace(/^\s*```\w*\s*/, "")
+                  .replace(/\s*```\s*$/, "")
+                  .trim();
+
+                if (!className) {
+                  return (
+                    <code
+                      className="
+                        px-1.5
+                        py-0.5
+                        rounded
+
+                        bg-white/10
+
+                        text-violet-300
+
+                        break-words
+                      "
+                    >
+                      {value}
+                    </code>
+                  );
+                }
+
+                const language = className.replace("language-", "");
+
+                return (
+                  <div
+                    className="
+                      my-4
+
+                      max-w-full
+                      overflow-hidden
+
+                      rounded-xl
+
+                      border
+                      border-white/10
+
+                      bg-[#111318]
+                    "
+                  >
+                    <div
+                      className="
+                        flex
+                        items-center
+                        justify-between
+
+                        bg-[#1b1d24]
+
+                        border-b
+                        border-white/10
+
+                        px-3
+                        sm:px-4
+
+                        py-2
+
+                        gap-2
+                      "
+                    >
+                      <span
+                        className="
+                          uppercase
+                          text-[10px]
+                          sm:text-xs
+                          text-slate-400
+                        "
+                      >
+                        {language}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => copyCode(value)}
+                        className="
+                          flex
+                          items-center
+                          gap-1
+
+                          text-[10px]
+                          sm:text-xs
+
+                          cursor-pointer
+
+                          hover:text-indigo-400
+                        "
+                      >
+                        {copiedCode === value ? (
+                          <>
+                            <Check size={14} />
+                            Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={14} />
+                            Copy
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="max-w-full overflow-x-auto">
+                      <SyntaxHighlighter
+                        language={language}
+                        style={oneDark}
+                        wrapLongLines
+                        showLineNumbers
+                        customStyle={{
+                          margin: 0,
+                          padding: "14px",
+                          background: "#0d1117",
+                          fontSize: "12px",
+                        }}
+                      >
+                        {value}
+                      </SyntaxHighlighter>
+                    </div>
+                  </div>
+                );
+              },
+            }}
+          >
+            {content}
+          </ReactMarkdown>
+        </div>
       </div>
 
+      {/* IMAGE LIGHTBOX */}
       {lightBox && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
+        <div
+          className="
+            fixed
+            inset-0
+            z-50
+
+            bg-black/80
+            backdrop-blur-sm
+
+            flex
+            items-center
+            justify-center
+
+            p-4
+            sm:p-6
+          "
+          onClick={() => setLightBox(null)}
+        >
           <button
+            type="button"
             onClick={() => setLightBox(null)}
-            className="absolute top-5 right-5 text-white/80 hover:text-white bg-white/10 rounded-full p-2"
+            className="
+              absolute
+
+              top-4
+              right-4
+
+              sm:top-5
+              sm:right-5
+
+              text-white/80
+
+              hover:text-white
+
+              bg-white/10
+
+              rounded-full
+
+              p-2
+
+              cursor-pointer
+            "
           >
             <FiX size={18} />
           </button>
+
           <img
             src={lightBox}
-            onClick={(e) => e.stopPropagation()}
-            className="max-w-[90vw] max-h-[85vh] rounded-2xl border border-white/10 shadow-2xl object-contain"
+            alt="preview"
+            onClick={(event) => event.stopPropagation()}
+            className="
+              max-w-[92vw]
+              max-h-[85vh]
+
+              rounded-2xl
+
+              border
+              border-white/10
+
+              shadow-2xl
+
+              object-contain
+            "
           />
         </div>
       )}
-    </div>
+    </>
   );
 }
 
