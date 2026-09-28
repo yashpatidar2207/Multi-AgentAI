@@ -2,8 +2,12 @@ import fs from "fs/promises";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { getModel } from "../config/llmModels.js";
 import { deductUserCredits } from "../utils/deductUserCredits.js";
+import { checkAgentLimit } from "../config/RATELIMIT/agentRateLimit.js";
 
 export const imageAnalyzerAgent = async (state) => {
+
+  // check rate limit
+  await checkAgentLimit(state.userId,"image")
   const filePath = state.file.path;
   const mimeType = state.file.mimetype;
 
@@ -79,7 +83,7 @@ Always prioritize visual evidence from the provided image over assumptions.
 
     return {
       ...state,
-      aiResponse:"Failed to analyze image"
+      aiResponse: error?.data?.message || "❌ Failed to generate Image.",
     };
   }
   finally{

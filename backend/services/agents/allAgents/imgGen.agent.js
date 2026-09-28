@@ -4,6 +4,7 @@ import { uploadToS3 } from "./../utils/uploadToS3.js";
 import { getFromS3 } from "./../utils/getFromS3.js";
 import { generateImage } from "../config/mcp/imageGeneration.service.js";
 import { deductUserCredits } from "../utils/deductUserCredits.js";
+import { checkAgentLimit } from "../config/RATELIMIT/agentRateLimit.js";
 
 // export const imgGenAgent = async (state) => {
 //   try {
@@ -134,7 +135,8 @@ import { deductUserCredits } from "../utils/deductUserCredits.js";
 export const imgGenAgent = async (state) => {
 
   try {
-    
+    // check rate limit
+    await checkAgentLimit(state.userId,"image")
     const llm = await getModel("image")
 
   const systemPrompt = `
@@ -215,7 +217,7 @@ export const imgGenAgent = async (state) => {
    console.log("Image Agent Error:", error);
     return {
       ...state,
-      aiResponse: "❌ Failed to generate image.",
+      aiResponse: error?.data?.message || "❌ Failed to generate image.",
     };
   }
   

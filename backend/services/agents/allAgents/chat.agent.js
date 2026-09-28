@@ -6,23 +6,26 @@ import {
 import { getModel } from "../config/llmModels.js";
 import { getMemory } from "../config/memory.js";
 import { deductUserCredits } from "../utils/deductUserCredits.js";
+import { checkAgentLimit } from "../config/RATELIMIT/agentRateLimit.js";
 
 export const chatAgent = async (state) => {
-
   try {
+    // check rate limit
+    await checkAgentLimit(state.userId, "chat");
+
     const llm = await getModel("chat");
 
-  const memoryHistory = await getMemory(state.conversationId);
+    const memoryHistory = await getMemory(state.conversationId);
 
-  const webSearchResults = state.webSearchResult
-    ? `
+    const webSearchResults = state.webSearchResult
+      ? `
     Web Search Results:
     ${state.webSearchResult}
     Answer the user using only the above search results.
     `
-    : "";
+      : "";
 
-  const sysPrompt = `You are an multi AI agent Assistent built by Yash Patidar.
+    const sysPrompt = `You are an multi AI agent Assistent built by Yash Patidar.
     
     ${webSearchResults}
 
@@ -90,34 +93,33 @@ export const chatAgent = async (state) => {
 15. Never concatenate separate Markdown elements onto the same line.
 16. Prefer this structure for detailed answers:
 `;
-  const messages = [new SystemMessage(sysPrompt)];
-  memoryHistory.forEach((message) => {
-    if (!message || !message.content) return;
+    const messages = [new SystemMessage(sysPrompt)];
+    memoryHistory.forEach((message) => {
+      if (!message || !message.content) return;
 
-    if (message.role === "user") {
-      messages.push(new HumanMessage(message.content));
-    }
-    if (message.role === "assistant") {
-      messages.push(new AIMessage(message.content));
-    }
-  });
+      if (message.role === "user") {
+        messages.push(new HumanMessage(message.content));
+      }
+      if (message.role === "assistant") {
+        messages.push(new AIMessage(message.content));
+      }
+    });
 
-  messages.push(new HumanMessage(state.prompt));
-  console.log(messages);
-  const response = await llm.invoke(messages); // llm takes array of messages(instructions)
-  
-  await deductUserCredits(state.userId,"chat")
-  return {
-    ...state,
-    aiResponse: response.content,
-  };
-  
-  } catch (error) {
-    console.log("Chat Agent Error:", error);
+    messages.push(new HumanMessage(state.prompt));
+    console.log(messages);
+    const response = await llm.invoke(messages); // llm takes array of messages(instructions)
+
+    await deductUserCredits(state.userId, "chat");
     return {
       ...state,
-      aiResponse: "❌ Failed to generate Response.",
+      aiResponse: response.content,
+    };
+  } catch (error) {
+    console.log("Chat Agent Error:", error);
+
+    return {
+      ...state,
+      aiResponse: error?.data?.message || "❌ Failed to generate Response.",
     };
   }
-  
 };

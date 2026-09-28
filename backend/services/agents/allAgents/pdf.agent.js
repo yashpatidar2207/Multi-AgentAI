@@ -3,9 +3,12 @@ import { getModel } from "./../config/llmModels.js";
 import { uploadToS3 } from './../utils/uploadToS3.js';
 import { getFromS3 } from './../utils/getFromS3.js';
 import { deductUserCredits } from "../utils/deductUserCredits.js";
+import { checkAgentLimit } from "../config/RATELIMIT/agentRateLimit.js";
 
 export const pdfAgent = async (state) => {
   try {
+    // check rate limit
+    await checkAgentLimit(state.userId,"pdf")
     const llm = await getModel("pdf");
     const systemPrompt = `
         You are a professional PDF Content Generator for a Multi-Agent AI platform.
@@ -126,9 +129,7 @@ ${state.prompt}
     return {
 
       ...state,
-
-      response:
-        "❌ Failed to generate PDF."
+      aiResponse: error?.data?.message || "❌ Failed to generate PDF."
 
     };
   }

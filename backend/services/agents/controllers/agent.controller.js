@@ -3,12 +3,11 @@ import { graph } from './../langGraph/graph.js';
 import { addMessage } from '../config/memory.js';
 import redis from '../../../shared/redis/redis.js';
 
-export const agent = async (req,res) =>{
+export const agent = async (req,res,next) =>{
 
     try {
         const userId = req.headers["x-user-id"]
         const file = req.file;
-        console.log("first:", file)
         const {conversationId,prompt,agent} = req.body
 
         await axios.post(`${process.env.CHAT_SERVICE}/save-message`,{
@@ -43,7 +42,7 @@ export const agent = async (req,res) =>{
         })
     } catch (error) {
         //console.log(error)
-        return res.status(500).json({message:`Error in chat Agent - ${error}`})
+        next(error)
     }
 
 }

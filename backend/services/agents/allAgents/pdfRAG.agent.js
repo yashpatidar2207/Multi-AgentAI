@@ -1,21 +1,19 @@
 import fs from "fs/promises";
 import { PDFParse } from "pdf-parse";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
-import {
-  HumanMessage,
-  SystemMessage,
-} from "@langchain/core/messages";
+import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 
 import { getVectorStore } from "../config/RAG/vectorDB.js";
 import { getModel } from "./../config/llmModels.js";
 import { deductUserCredits } from "./../utils/deductUserCredits.js";
+import { checkAgentLimit } from "../config/RATELIMIT/agentRateLimit.js";
 
 export const pdfRAGAgent = async (state) => {
-
+  // check rate limit
+  await checkAgentLimit(state.userId, "pdf");
   const filePath = state.file.path;
 
   try {
-
     // -----------------------------
     // 1. Read temporary PDF
     // -----------------------------
@@ -77,7 +75,7 @@ export const pdfRAGAgent = async (state) => {
 
     const vectorStore = await getVectorStore(
       state.file.originalname,
-      documentsWithMetadata
+      documentsWithMetadata,
     );
 
     console.log("PDF chunks stored in Qdrant");
@@ -86,14 +84,9 @@ export const pdfRAGAgent = async (state) => {
     // 6. Similarity Search
     // -----------------------------
 
-    const relevantChunks = await vectorStore.similaritySearch(
-      state.prompt,
-      5
-    );
+    const relevantChunks = await vectorStore.similaritySearch(state.prompt, 5);
 
-    console.log(
-      `Relevant chunks found: ${relevantChunks.length}`
-    );
+    console.log(`Relevant chunks found: ${relevantChunks.length}`);
 
     // -----------------------------
     // 7. Create Context
@@ -164,10 +157,7 @@ ${context}
     // 10. Deduct credits
     // -----------------------------
 
-    await deductUserCredits(
-      state.userId,
-      "pdf"
-    );
+    await deductUserCredits(state.userId, "pdf");
 
     // -----------------------------
     // 11. Return State
@@ -175,42 +165,26 @@ ${context}
 
     return {
       ...state,
-      aiResponse: result.content
+      aiResponse: result.content,
     };
-
   } catch (error) {
-
-    console.error(
-      "PDF RAG Agent Error:",
-      error
-    );
+    console.error("PDF RAG Agent Error:", error);
 
     return {
       ...state,
-      aiResponse: "Failed to analyze PDF",
+      aiResponse: error?.data?.message || "Failed to analyze PDF",
     };
-
   } finally {
-
     // -----------------------------
     // Delete temporary PDF
     // -----------------------------
 
     try {
-
       await fs.unlink(filePath);
 
-      console.log(
-        "Temporary PDF deleted"
-      );
-
+      console.log("Temporary PDF deleted");
     } catch (unlinkError) {
-
-      console.error(
-        "Failed to delete temporary PDF:",
-        unlinkError.message
-      );
-
+      console.error("Failed to delete temporary PDF:", unlinkError.message);
     }
   }
 };

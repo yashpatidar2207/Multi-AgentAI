@@ -1,18 +1,22 @@
+import { checkAgentLimit } from "../config/RATELIMIT/agentRateLimit.js";
 import { deductUserCredits } from "../utils/deductUserCredits.js";
 import { getModel } from "./../config/llmModels.js";
 
 export const codingAgent = async (state) => {
-    try {
-        // -----------------------------------------
-        // 1. Get LLM Models
-        // -----------------------------------------
-        const codingllm = await getModel("coding");
-        const intentllm = await getModel("intent");
+  try {
+    // -----------------------------------------
+    // 1. Get LLM Models
+    // -----------------------------------------
+    // check rate limit
+    await checkAgentLimit(state.userId, "coding");
 
-        // -----------------------------------------
-        // 2. Detect User Intent
-        // -----------------------------------------
-        const intentRes = await intentllm.invoke(`
+    const codingllm = await getModel("coding");
+    const intentllm = await getModel("intent");
+
+    // -----------------------------------------
+    // 2. Detect User Intent
+    // -----------------------------------------
+    const intentRes = await intentllm.invoke(`
 You are an intent classifier.
 
 Return ONLY one of these exact values:
@@ -31,19 +35,16 @@ User Request:
 ${state.prompt}
         `);
 
-        // Normalize intent
-        const intent = String(intentRes.content)
-            .trim()
-            .replace(/["']/g, "")
+    // Normalize intent
+    const intent = String(intentRes.content).trim().replace(/["']/g, "");
 
-        console.log("Detected Intent:", intent);
+    console.log("Detected Intent:", intent);
 
-        // -----------------------------------------
-        // 3. CODE GENERATION
-        // -----------------------------------------
-        if (intent === "CODE_GENERATION") {
-
-            const prompt = `
+    // -----------------------------------------
+    // 3. CODE GENERATION
+    // -----------------------------------------
+    if (intent === "CODE_GENERATION") {
+      const prompt = `
 You are a Coding Agent.
 
 Generate the requested project.
@@ -200,98 +201,87 @@ User Request:
 ${state.prompt}
             `;
 
-            // -----------------------------------------
-            // 4. Generate Project
-            // -----------------------------------------
-            const res = await codingllm.invoke(prompt);
+      // -----------------------------------------
+      // 4. Generate Project
+      // -----------------------------------------
+      const res = await codingllm.invoke(prompt);
 
-            console.log("Raw Coding LLM Response:");
-            console.log(res.content);
+      console.log("Raw Coding LLM Response:");
+      console.log(res.content);
 
-            // -----------------------------------------
-            // 5. Clean LLM JSON Response
-            // -----------------------------------------
-            let jsonContent = String(res.content).trim();
+      // -----------------------------------------
+      // 5. Clean LLM JSON Response
+      // -----------------------------------------
+      let jsonContent = String(res.content).trim();
 
-            // Remove markdown code fences if LLM adds them
-            jsonContent = jsonContent
-                .replace(/^```json\s*/i, "")
-                .replace(/^```\s*/i, "")
-                .replace(/\s*```$/i, "")
-                .trim();
+      // Remove markdown code fences if LLM adds them
+      jsonContent = jsonContent
+        .replace(/^```json\s*/i, "")
+        .replace(/^```\s*/i, "")
+        .replace(/\s*```$/i, "")
+        .trim();
 
-            // -----------------------------------------
-            // 6. Parse JSON
-            // -----------------------------------------
-            let data;
+      // -----------------------------------------
+      // 6. Parse JSON
+      // -----------------------------------------
+      let data;
 
-            try {
-                data = JSON.parse(jsonContent);
-            } catch (parseError) {
+      try {
+        data = JSON.parse(jsonContent);
+      } catch (parseError) {
+        console.error("❌ JSON Parse Error:", parseError);
+        console.error("❌ LLM Response:", jsonContent);
 
-                console.error("❌ JSON Parse Error:", parseError);
-                console.error("❌ LLM Response:", jsonContent);
+        return {
+          ...state,
+          aiResponse: "❌ Coding Agent returned an invalid project format.",
+          artifacts: [],
+        };
+      }
 
-                return {
-                    ...state,
-                    aiResponse:
-                        "❌ Coding Agent returned an invalid project format.",
-                    artifacts: []
-                };
-            }
+      // -----------------------------------------
+      // 7. Validate Generated Files
+      // -----------------------------------------
+      if (!data || !Array.isArray(data.files)) {
+        console.error("❌ Invalid project structure:", data);
 
-            // -----------------------------------------
-            // 7. Validate Generated Files
-            // -----------------------------------------
-            if (!data || !Array.isArray(data.files)) {
+        return {
+          ...state,
+          aiResponse: "❌ Generated project has an invalid file structure.",
+          artifacts: [],
+        };
+      }
 
-                console.error(
-                    "❌ Invalid project structure:",
-                    data
-                );
+      console.log("Generated Files:", data.files);
 
-                return {
-                    ...state,
-                    aiResponse:
-                        "❌ Generated project has an invalid file structure.",
-                    artifacts: []
-                };
-            }
+      // -----------------------------------------
+      // 8. Deduct Credits
+      // -----------------------------------------
+      await deductUserCredits(state.userId, "coding");
 
-            console.log("Generated Files:", data.files);
+      // -----------------------------------------
+      // 9. Return Generated Project
+      // -----------------------------------------
+      return {
+        ...state,
 
-            // -----------------------------------------
-            // 8. Deduct Credits
-            // -----------------------------------------
-            await deductUserCredits(
-                state.userId,
-                "coding"
-            );
+        aiResponse: "Your Code has been generated successfully. 😎",
 
-            // -----------------------------------------
-            // 9. Return Generated Project
-            // -----------------------------------------
-            return {
-                ...state,
+        artifacts: [
+          {
+            id: Date.now(),
+            type: "project",
+            files: data.files,
+            title: state.prompt,
+          },
+        ],
+      };
+    }
 
-                aiResponse:
-                    "Your Code has been generated successfully. 😎",
-
-                artifacts: [
-                    {
-                        id: Date.now(),
-                        type: "project",
-                        files: data.files,
-                        title: state.prompt
-                    }
-                ]
-            };
-        }
-
-        // -----------------------------------------
-        // 10. Other Coding Intents
-        // -----------------------------------------
-        const res = await codingllm.invoke(`
+    // -----------------------------------------
+    // 10. Other Coding Intents
+    // -----------------------------------------
+    const res = await codingllm.invoke(`
 ${intent}
 
 Return Markdown only.
@@ -316,36 +306,31 @@ User Request:
 ${state.prompt}
         `);
 
-        const data = res.content;
+    const data = res.content;
 
-        // -----------------------------------------
-        // 11. Deduct Credits
-        // -----------------------------------------
-        await deductUserCredits(
-            state.userId,
-            "coding"
-        );
+    // -----------------------------------------
+    // 11. Deduct Credits
+    // -----------------------------------------
+    await deductUserCredits(state.userId, "coding");
 
-        // -----------------------------------------
-        // 12. Return Explanation / Review / Debugging
-        // -----------------------------------------
-        return {
-            ...state,
-            aiResponse: data,
-            artifacts: []
-        };
+    // -----------------------------------------
+    // 12. Return Explanation / Review / Debugging
+    // -----------------------------------------
+    return {
+      ...state,
+      aiResponse: data,
+      artifacts: [],
+    };
+  } catch (error) {
+    // -----------------------------------------
+    // Global Error Handler
+    // -----------------------------------------
+    console.error("❌ Coding Agent Error:", error);
 
-    } catch (error) {
-
-        // -----------------------------------------
-        // Global Error Handler
-        // -----------------------------------------
-        console.error("❌ Coding Agent Error:", error);
-
-        return {
-            ...state,
-            aiResponse: "❌ Failed to generate response.",
-            artifacts: []
-        };
-    }
+    return {
+      ...state,
+      aiResponse: error?.data?.message || "❌ Failed to generate Project.",
+      artifacts: [],
+    };
+  }
 };
