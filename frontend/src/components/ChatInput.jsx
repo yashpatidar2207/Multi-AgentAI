@@ -11,10 +11,15 @@ import {
   X,
   ZapIcon,
   Maximize2,
-  ChevronUp,
+  MicOff,
+  ChevronsUp,
 } from "lucide-react";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { useDispatch, useSelector } from "react-redux";
 
@@ -32,29 +37,100 @@ import {
   setSelectedConversation,
 } from "../redux/conversationSlice.js";
 
-import { createConversation } from "./../features/createConversation.js";
+import {
+  createConversation,
+} from "./../features/createConversation.js";
 
-import { updateConversation } from "../features/updateConversation.js";
+import {
+  updateConversation,
+} from "../features/updateConversation.js";
 
-function ChatInput({ onGeneratingChange, onOpenArtifact }) {
+function ChatInput({
+  onGeneratingChange,
+  onOpenArtifact,
+}) {
+  /* =====================================================
+     BASIC STATE
+  ===================================================== */
+
   const [value, setValue] = useState("");
 
-  const [selectedAgent, setSelectedAgent] = useState("Auto");
+  const [selectedAgent, setSelectedAgent] =
+    useState("Auto");
 
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFile, setSelectedFile] =
+    useState(null);
 
-  const [previewUrl, setPreviewUrl] = useState(null);
+  const [previewUrl, setPreviewUrl] =
+    useState(null);
 
-  const [showAgents, setShowAgents] = useState(false);
+  const [showAgents, setShowAgents] =
+    useState(false);
+
+  /* =====================================================
+     VOICE STATE
+  ===================================================== */
+
+  const [isListening, setIsListening] =
+    useState(false);
+
+  const recognitionRef = useRef(null);
+
+  const valueRef = useRef("");
+
+  const speechBaseValueRef =
+    useRef("");
+
+  const finalTranscriptRef =
+    useRef("");
+
+  const shouldKeepListeningRef =
+    useRef(false);
 
   const fileRef = useRef(null);
+
   const textareaRef = useRef(null);
 
-  const { selectedConversation } = useSelector((state) => state.conversation);
+  /* =====================================================
+     REDUX
+  ===================================================== */
 
-  const { artifacts } = useSelector((state) => state.message);
+  const {
+    selectedConversation,
+  } = useSelector(
+    (state) => state.conversation
+  );
+
+  const {
+    artifacts,
+  } = useSelector(
+    (state) => state.message
+  );
 
   const dispatch = useDispatch();
+
+  /* =====================================================
+     KEEP VALUE REF UPDATED
+  ===================================================== */
+
+  useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
+
+  /* =====================================================
+     PLACEHOLDERS
+  ===================================================== */
+
+  const placeholders = {
+    auto: "Ask to Multi AI...",
+    chat: "Chat with Multi AI...",
+    coding:
+      "Describe the software you want...",
+    pdf: "Generate a PDF about...",
+    ppt: "Create a presentation about...",
+    image: "Describe the image...",
+    search: "Search the web...",
+  };
 
   /* =====================================================
      AGENTS
@@ -99,17 +175,24 @@ function ChatInput({ onGeneratingChange, onOpenArtifact }) {
   ];
 
   const selectedAgentData =
-    agents.find((agent) => agent.label === selectedAgent) || agents[0];
+    agents.find(
+      (agent) =>
+        agent.label === selectedAgent
+    ) || agents[0];
 
-  const SelectedAgentIcon = selectedAgentData.icon;
+  const SelectedAgentIcon =
+    selectedAgentData.icon;
 
   /* =====================================================
      ARTIFACT AVAILABLE
   ===================================================== */
 
-  const hasArtifact = artifacts?.some(
-    (artifact) => artifact?.files && artifact.files.length > 0,
-  );
+  const hasArtifact =
+    artifacts?.some(
+      (artifact) =>
+        artifact?.files &&
+        artifact.files.length > 0
+    );
 
   /* =====================================================
      FILE PREVIEW
@@ -121,8 +204,15 @@ function ChatInput({ onGeneratingChange, onOpenArtifact }) {
       return;
     }
 
-    if (selectedFile.type?.startsWith("image/")) {
-      const url = URL.createObjectURL(selectedFile);
+    if (
+      selectedFile.type?.startsWith(
+        "image/"
+      )
+    ) {
+      const url =
+        URL.createObjectURL(
+          selectedFile
+        );
 
       setPreviewUrl(url);
 
@@ -135,137 +225,485 @@ function ChatInput({ onGeneratingChange, onOpenArtifact }) {
   }, [selectedFile]);
 
   /* =====================================================
-     TEXTAREA AUTO HEIGHT
+     TEXTAREA
   ===================================================== */
 
   useEffect(() => {
-    const textarea = textareaRef.current;
+    const textarea =
+      textareaRef.current;
 
     if (!textarea) return;
 
     textarea.style.height = "auto";
 
-    const maxHeight = window.innerWidth < 640 ? 110 : 170;
+    /*
+     * Mobile and desktop both remain compact.
+     * It can still grow slightly if needed.
+     */
+    const maxHeight =
+      window.innerWidth < 640
+        ? 90
+        : 140;
 
-    textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
+    textarea.style.height =
+      `${Math.min(
+        textarea.scrollHeight,
+        maxHeight
+      )}px`;
   }, [value]);
+
+  /* =====================================================
+     SPEECH RECOGNITION
+  ===================================================== */
+
+  useEffect(() => {
+    const SpeechRecognition =
+      window.SpeechRecognition ||
+      window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      return;
+    }
+
+    const recognition =
+      new SpeechRecognition();
+
+    recognition.lang = "en-IN";
+
+    recognition.interimResults =
+      true;
+
+    recognition.continuous = true;
+
+    /* =================================================
+       START
+    ================================================= */
+
+    recognition.onstart = () => {
+      setIsListening(true);
+
+      speechBaseValueRef.current =
+        valueRef.current;
+
+      finalTranscriptRef.current =
+        "";
+    };
+
+    /* =================================================
+       RESULT
+    ================================================= */
+
+    recognition.onresult = (
+      event
+    ) => {
+      let interimTranscript = "";
+
+      let finalTranscript = "";
+
+      for (
+        let i = event.resultIndex;
+        i < event.results.length;
+        i++
+      ) {
+        const transcript =
+          event.results[i]?.[0]
+            ?.transcript || "";
+
+        if (
+          event.results[i].isFinal
+        ) {
+          finalTranscript +=
+            transcript;
+        } else {
+          interimTranscript +=
+            transcript;
+        }
+      }
+
+      if (finalTranscript) {
+        finalTranscriptRef.current +=
+          finalTranscript;
+      }
+
+      const combinedValue =
+        speechBaseValueRef.current +
+        finalTranscriptRef.current +
+        interimTranscript;
+
+      setValue(combinedValue);
+
+      valueRef.current =
+        combinedValue;
+    };
+
+    /* =================================================
+       ERROR
+    ================================================= */
+
+    recognition.onerror = (
+      event
+    ) => {
+      if (
+        event.error !==
+          "no-speech" &&
+        event.error !==
+          "aborted"
+      ) {
+        console.error(
+          "Speech recognition error:",
+          event.error
+        );
+      }
+    };
+
+    /* =================================================
+       END
+    ================================================= */
+
+    recognition.onend = () => {
+      if (
+        shouldKeepListeningRef.current
+      ) {
+        try {
+          recognition.start();
+          return;
+        } catch (error) {
+          // Browser may already be restarting.
+        }
+      }
+
+      setIsListening(false);
+    };
+
+    recognitionRef.current =
+      recognition;
+
+    return () => {
+      shouldKeepListeningRef.current =
+        false;
+
+      try {
+        recognition.stop();
+      } catch (error) {
+        // Ignore cleanup errors.
+      }
+
+      recognitionRef.current =
+        null;
+    };
+  }, []);
+
+  /* =====================================================
+     MICROPHONE
+  ===================================================== */
+
+  const toggleMic = () => {
+    const recognition =
+      recognitionRef.current;
+
+    if (!recognition) {
+      alert(
+        "Speech Recognition not supported in this browser."
+      );
+
+      return;
+    }
+
+    /* STOP */
+
+    if (isListening) {
+      shouldKeepListeningRef.current =
+        false;
+
+      try {
+        recognition.stop();
+      } catch (error) {
+        console.log(
+          "Speech recognition stop error:",
+          error
+        );
+      }
+
+      setIsListening(false);
+
+      return;
+    }
+
+    /* START */
+
+    speechBaseValueRef.current =
+      valueRef.current;
+
+    finalTranscriptRef.current =
+      "";
+
+    shouldKeepListeningRef.current =
+      true;
+
+    try {
+      recognition.start();
+    } catch (error) {
+      console.log(
+        "Speech recognition start error:",
+        error
+      );
+    }
+  };
 
   /* =====================================================
      SEND MESSAGE
   ===================================================== */
 
-  const handleSendMessage = async () => {
-    const trimmedValue = value.trim();
+  const handleSendMessage =
+    async () => {
+      /* -----------------------------------------------
+         STOP MICROPHONE
+      ----------------------------------------------- */
 
-    if (!trimmedValue && !selectedFile) {
-      return;
-    }
+      if (isListening) {
+        shouldKeepListeningRef.current =
+          false;
 
-    let conversation = selectedConversation;
+        try {
+          recognitionRef.current?.stop();
+        } catch (error) {
+          // Ignore
+        }
 
-    try {
-      /* CREATE CONVERSATION */
-
-      if (!conversation) {
-        dispatch(setMessages([]));
-
-        const conv = await createConversation();
-
-        dispatch(setSelectedConversation(conv));
-
-        dispatch(addConversation(conv));
-
-        conversation = conv;
+        setIsListening(false);
       }
 
-      /* UPDATE TITLE */
+      /* -----------------------------------------------
+         CAPTURE CURRENT VALUES
+      ----------------------------------------------- */
 
-      if (conversation?.title === "New Chat") {
-        const title = trimmedValue || selectedFile?.name || "New Chat";
+      const trimmedValue =
+        value.trim();
 
-        await updateConversation({
-          id: conversation?._id,
-          title,
-        });
+      /*
+       * IMPORTANT:
+       * Capture file before clearing state.
+       */
+      const currentFile =
+        selectedFile;
+
+      /* -----------------------------------------------
+         VALIDATION
+      ----------------------------------------------- */
+
+      if (
+        !trimmedValue &&
+        !currentFile
+      ) {
+        return;
+      }
+
+      let conversation =
+        selectedConversation;
+
+      try {
+        /* ===============================================
+           CREATE CONVERSATION
+        =============================================== */
+
+        if (!conversation) {
+          dispatch(
+            setMessages([])
+          );
+
+          const conv =
+            await createConversation();
+
+          dispatch(
+            setSelectedConversation(
+              conv
+            )
+          );
+
+          dispatch(
+            addConversation(conv)
+          );
+
+          conversation = conv;
+        }
+
+        /* ===============================================
+           UPDATE TITLE
+        =============================================== */
+
+        if (
+          conversation?.title ===
+          "New Chat"
+        ) {
+          const title =
+            trimmedValue ||
+            currentFile?.name ||
+            "New Chat";
+
+          await updateConversation({
+            id: conversation?._id,
+            title,
+          });
+
+          dispatch(
+            setConversationTitle({
+              conversationId:
+                conversation?._id,
+              title:
+                title.slice(0, 50),
+            })
+          );
+        }
+
+        /* ===============================================
+           USER MESSAGE
+
+           User message is added immediately.
+        =============================================== */
 
         dispatch(
-          setConversationTitle({
-            conversationId: conversation?._id,
-            title: title.slice(0, 50),
-          }),
+          addMessage({
+            role: "user",
+            content:
+              trimmedValue ||
+              currentFile?.name ||
+              "",
+          })
+        );
+
+        /* ===============================================
+           FORM DATA
+
+           Create FormData BEFORE clearing file state.
+        =============================================== */
+
+        const formData =
+          new FormData();
+
+        formData.append(
+          "prompt",
+          trimmedValue
+        );
+
+        formData.append(
+          "conversationId",
+          conversation?._id
+        );
+
+        formData.append(
+          "agent",
+          selectedAgent.toLowerCase()
+        );
+
+        if (currentFile) {
+          formData.append(
+            "file",
+            currentFile
+          );
+        }
+
+        /* ===============================================
+           IMPORTANT:
+
+           CLEAR INPUT IMMEDIATELY.
+
+           Do NOT wait for AI response.
+        =============================================== */
+
+        setValue("");
+
+        valueRef.current = "";
+
+        setSelectedFile(null);
+
+        setPreviewUrl(null);
+
+        speechBaseValueRef.current =
+          "";
+
+        finalTranscriptRef.current =
+          "";
+
+        if (fileRef.current) {
+          fileRef.current.value =
+            "";
+        }
+
+        /* ===============================================
+           START GENERATION
+        =============================================== */
+
+        onGeneratingChange?.(
+          true
+        );
+
+        /* ===============================================
+           API REQUEST
+        =============================================== */
+
+        const data =
+          await sendMessage(
+            formData
+          );
+
+        /* ===============================================
+           ARTIFACT
+        =============================================== */
+
+        dispatch(
+          setArtifacts(
+            data?.artifacts || []
+          )
+        );
+
+        /* ===============================================
+           AI RESPONSE
+        =============================================== */
+
+        dispatch(
+          addMessage({
+            role: "assistant",
+            content:
+              data?.answer || "",
+            images:
+              data?.images || [],
+          })
+        );
+
+        console.log(
+          "AI Response:",
+          data
+        );
+      } catch (error) {
+        console.error(
+          "Send message error:",
+          error
+        );
+
+        /*
+         * IMPORTANT:
+         *
+         * Do NOT restore the input here.
+         *
+         * The user's message has already
+         * been added to the chat.
+         */
+      } finally {
+        onGeneratingChange?.(
+          false
         );
       }
-
-      /* USER MESSAGE */
-
-      dispatch(
-        addMessage({
-          role: "user",
-          content: trimmedValue || selectedFile?.name || "",
-        }),
-      );
-
-      /* FORM DATA */
-
-      const formData = new FormData();
-
-      formData.append("prompt", trimmedValue);
-
-      formData.append("conversationId", conversation?._id);
-
-      formData.append("agent", selectedAgent.toLowerCase());
-
-      if (selectedFile) {
-        formData.append("file", selectedFile);
-      }
-
-      /* START LOADING */
-
-      onGeneratingChange?.(true);
-
-      /* API */
-
-      const data = await sendMessage(formData);
-
-      /* CLEAR INPUT */
-
-      setValue("");
-
-      setSelectedFile(null);
-      setPreviewUrl(null);
-
-      if (fileRef.current) {
-        fileRef.current.value = "";
-      }
-
-      /* ARTIFACT */
-
-      dispatch(setArtifacts(data?.artifacts || []));
-
-      /* AI RESPONSE */
-
-      dispatch(
-        addMessage({
-          role: "assistant",
-          content: data?.answer || "",
-          images: data?.images || [],
-        }),
-      );
-
-      console.log("AI Response:", data);
-    } catch (error) {
-      console.error("Send message error:", error);
-    } finally {
-      onGeneratingChange?.(false);
-    }
-  };
+    };
 
   /* =====================================================
      ENTER KEY
   ===================================================== */
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (
+      e.key === "Enter" &&
+      !e.shiftKey
+    ) {
       e.preventDefault();
 
       handleSendMessage();
@@ -276,8 +714,11 @@ function ChatInput({ onGeneratingChange, onOpenArtifact }) {
      FILE SELECT
   ===================================================== */
 
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
+  const handleFileChange = (
+    e
+  ) => {
+    const file =
+      e.target.files?.[0];
 
     if (!file) return;
 
@@ -290,10 +731,12 @@ function ChatInput({ onGeneratingChange, onOpenArtifact }) {
 
   const removeFile = () => {
     setSelectedFile(null);
+
     setPreviewUrl(null);
 
     if (fileRef.current) {
-      fileRef.current.value = "";
+      fileRef.current.value =
+        "";
     }
   };
 
@@ -301,10 +744,17 @@ function ChatInput({ onGeneratingChange, onOpenArtifact }) {
      SELECT AGENT
   ===================================================== */
 
-  const handleAgentSelect = (label) => {
+  const handleAgentSelect = (
+    label
+  ) => {
     setSelectedAgent(label);
+
     setShowAgents(false);
   };
+
+  /* =====================================================
+     RETURN
+  ===================================================== */
 
   return (
     <div
@@ -317,20 +767,20 @@ function ChatInput({ onGeneratingChange, onOpenArtifact }) {
         sm:px-3
         md:px-5
 
-        py-2
-        sm:py-3
-        md:py-4
+        pt-1
+        sm:pt-2
+        md:pt-3
 
-        border-t
-        border-white/[0.06]
+        pb-2
+        sm:pb-3
 
-        bg-[#0d0f14]
+        bg-transparent
+
+        md:bg-[#0d0f14]
       "
     >
       {/* =================================================
           ARTIFACT BUTTON
-
-          ONLY SHOW WHEN ARTIFACT EXISTS
       ================================================= */}
 
       {hasArtifact && (
@@ -347,7 +797,9 @@ function ChatInput({ onGeneratingChange, onOpenArtifact }) {
         >
           <button
             type="button"
-            onClick={onOpenArtifact}
+            onClick={
+              onOpenArtifact
+            }
             title="Open artifact preview"
             aria-label="Open artifact preview"
             className="
@@ -355,39 +807,43 @@ function ChatInput({ onGeneratingChange, onOpenArtifact }) {
               items-center
               justify-center
 
-              w-9
-              h-9
+              w-8
+              h-8
 
-              rounded-xl
+              rounded-full
 
               bg-[#151821]
 
               border
-              border-indigo-500/30
+              border-white/[0.08]
 
-              text-indigo-400
+              text-slate-400
 
-              hover:bg-indigo-500/10
-              hover:text-indigo-300
+              hover:bg-white/[0.06]
+              hover:text-slate-200
 
               active:scale-95
 
               transition-all
-              duration-200
 
               cursor-pointer
-
-              shadow-lg
-              shadow-black/20
             "
           >
-            <Maximize2 size={16} />
+            <Maximize2
+              size={14}
+            />
           </button>
         </div>
       )}
 
       {/* =================================================
-          MAIN INPUT
+          MAIN INPUT WRAPPER
+
+          MOBILE:
+          Transparent.
+
+          DESKTOP:
+          Original subtle container.
       ================================================= */}
 
       <div
@@ -396,41 +852,158 @@ function ChatInput({ onGeneratingChange, onOpenArtifact }) {
 
           flex
           flex-col
-          gap-1.5
 
-          bg-white/[0.03]
+          gap-0
 
-          border
-          border-white/[0.07]
+          bg-transparent
 
-          rounded-2xl
+          border-transparent
 
-          px-2.5
-          sm:px-4
+          rounded-none
 
-          pt-2.5
-          sm:pt-3
+          px-0
+          py-0
 
-          pb-2
-          sm:pb-3
+          md:gap-1.5
+
+          md:bg-white/[0.03]
+
+          md:border
+          md:border-white/[0.07]
+
+          md:rounded-2xl
+
+          md:px-2.5
+          md:py-2.5
         "
       >
         {/* =================================================
+            DESKTOP AGENTS
+        ================================================= */}
+
+        <div
+          className="
+            hidden
+            md:flex
+
+            items-center
+
+            gap-1.5
+
+            w-full
+
+            overflow-x-auto
+
+            [scrollbar-width:none]
+            [&::-webkit-scrollbar]:hidden
+          "
+        >
+          {agents.map(
+            (agent) => {
+              const isActive =
+                selectedAgent ===
+                agent.label;
+
+              const Icon =
+                agent.icon;
+
+              return (
+                <button
+                  key={agent.id}
+                  type="button"
+                  onClick={() =>
+                    setSelectedAgent(
+                      agent.label
+                    )
+                  }
+                  className={`
+                    shrink-0
+
+                    inline-flex
+                    items-center
+                    justify-center
+
+                    gap-1.5
+
+                    px-3
+                    py-1.5
+
+                    rounded-full
+
+                    text-xs
+                    font-medium
+
+                    border
+
+                    transition-all
+                    duration-150
+
+                    cursor-pointer
+
+                    ${
+                      isActive
+                        ? `
+                          bg-white/[0.10]
+
+                          text-slate-100
+
+                          border-white/[0.12]
+
+                          shadow-sm
+                        `
+                        : `
+                          bg-transparent
+
+                          text-slate-400
+
+                          border-white/[0.06]
+
+                          hover:bg-white/[0.04]
+                          hover:text-slate-200
+                        `
+                    }
+                  `}
+                >
+                  <Icon
+                    size={14}
+                  />
+
+                  {agent.label}
+                </button>
+              );
+            }
+          )}
+        </div>
+
+        {/* =================================================
             MOBILE AGENT SELECTOR
+
+            IMPORTANT:
+            Absolute positioning means it DOES NOT
+            reserve vertical space.
+
+            Therefore the black/dark horizontal
+            agent area is removed.
         ================================================= */}
 
         <div
           className="
             md:hidden
 
-            flex
-            items-center
-            justify-end
+            absolute
 
-            relative
+            right-0
+
+            bottom-full
+
+            mb-1
+
+            z-50
           "
         >
-          {/* AGENT MENU */}
+          {/* =================================================
+              MOBILE AGENT MENU
+          ================================================= */}
 
           {showAgents && (
             <div
@@ -438,7 +1011,8 @@ function ChatInput({ onGeneratingChange, onOpenArtifact }) {
                 absolute
 
                 right-0
-                bottom-[42px]
+
+                bottom-[36px]
 
                 z-50
 
@@ -459,32 +1033,39 @@ function ChatInput({ onGeneratingChange, onOpenArtifact }) {
 
                 shadow-2xl
                 shadow-black/40
-
-                animate-in
-                fade-in
-                slide-in-from-bottom-2
-
-                duration-200
               "
             >
-              {agents.map((agent) => {
-                const Icon = agent.icon;
+              {agents.map(
+                (agent) => {
+                  const Icon =
+                    agent.icon;
 
-                const isActive = selectedAgent === agent.label;
+                  const isActive =
+                    selectedAgent ===
+                    agent.label;
 
-                return (
-                  <div
-                    key={agent.id}
-                    className="
+                  return (
+                    <div
+                      key={agent.id}
+                      className="
                         relative
                         group
                       "
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleAgentSelect(agent.label)}
-                      aria-label={agent.label}
-                      className={`
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleAgentSelect(
+                            agent.label
+                          )
+                        }
+                        title={
+                          agent.label
+                        }
+                        aria-label={
+                          agent.label
+                        }
+                        className={`
                           flex
                           items-center
                           justify-center
@@ -504,35 +1085,42 @@ function ChatInput({ onGeneratingChange, onOpenArtifact }) {
                           ${
                             isActive
                               ? `
-                                bg-indigo-500
-                                border-indigo-400
+                                bg-white/[0.12]
+
+                                border-white/[0.15]
+
                                 text-white
-                                shadow-md
-                                shadow-indigo-500/30
                               `
                               : `
-                                bg-white/[0.03]
+                                bg-transparent
+
                                 border-white/[0.06]
+
                                 text-slate-500
-                                hover:bg-white/[0.08]
+
+                                hover:bg-white/[0.06]
+
                                 hover:text-slate-200
                               `
                           }
                         `}
-                    >
-                      <Icon size={14} />
-                    </button>
+                      >
+                        <Icon
+                          size={14}
+                        />
+                      </button>
 
-                    {/* CUSTOM TOOLTIP */}
+                      {/* Tooltip */}
 
-                    <span
-                      className="
+                      <span
+                        className="
                           pointer-events-none
 
                           absolute
 
                           right-[38px]
                           top-1/2
+
                           -translate-y-1/2
 
                           whitespace-nowrap
@@ -551,6 +1139,7 @@ function ChatInput({ onGeneratingChange, onOpenArtifact }) {
                           text-slate-200
 
                           opacity-0
+
                           translate-x-1
 
                           group-hover:opacity-100
@@ -561,23 +1150,35 @@ function ChatInput({ onGeneratingChange, onOpenArtifact }) {
 
                           shadow-lg
                         "
-                    >
-                      {agent.label}
-                    </span>
-                  </div>
-                );
-              })}
+                      >
+                        {agent.label}
+                      </span>
+                    </div>
+                  );
+                }
+              )}
             </div>
           )}
 
-          {/* SELECTED AGENT */}
+          {/* =================================================
+              SELECTED AGENT BUTTON
+          ================================================= */}
 
           <button
             type="button"
-            onClick={() => setShowAgents((previous) => !previous)}
-            title={selectedAgentData.label}
-            aria-label={selectedAgentData.label}
-            className={`
+            onClick={() =>
+              setShowAgents(
+                (previous) =>
+                  !previous
+              )
+            }
+            title={
+              selectedAgentData.label
+            }
+            aria-label={
+              selectedAgentData.label
+            }
+            className="
               flex
               items-center
               justify-center
@@ -585,380 +1186,407 @@ function ChatInput({ onGeneratingChange, onOpenArtifact }) {
               w-8
               h-8
 
-              rounded-lg
+              rounded-full
+
+              bg-transparent
 
               border
+              border-white/[0.10]
+
+              text-slate-400
+
+              hover:bg-white/[0.05]
+
+              hover:text-slate-200
 
               transition-all
-              duration-200
 
               cursor-pointer
-
-              ${
-                showAgents
-                  ? `
-                    bg-indigo-500
-                    border-indigo-400
-                    text-white
-                  `
-                  : `
-                    bg-indigo-500/10
-                    border-indigo-500/30
-                    text-indigo-400
-                    hover:bg-indigo-500/20
-                  `
-              }
-            `}
+            "
           >
             {showAgents ? (
-              <ChevronUp size={15} />
+              <ChevronsUp
+                size={15}
+              />
             ) : (
-              <SelectedAgentIcon size={15} />
+              <SelectedAgentIcon
+                size={15}
+              />
             )}
           </button>
         </div>
 
         {/* =================================================
-            DESKTOP AGENTS
+            ACTUAL INPUT BOX
+
+            ONLY THIS PART HAS GRAY BACKGROUND.
         ================================================= */}
 
         <div
           className="
-            hidden
-            md:flex
+            relative
+
+            flex
+            items-center
 
             w-full
 
-            gap-2
+            min-h-[44px]
 
-            pr-2
+            sm:min-h-[46px]
 
-            flex-wrap
+            md:min-h-[48px]
+
+            bg-[#2f2f2f]
+
+            border
+            border-white/[0.08]
+
+            rounded-[17px]
+
+            sm:rounded-[18px]
+
+            md:rounded-[20px]
+
+            px-2
+
+            sm:px-2.5
+
+            shadow-sm
           "
         >
-          {agents.map((agent) => {
-            const isActive = selectedAgent === agent.label;
+          {/* =================================================
+              FILE PREVIEW
+          ================================================= */}
 
-            const Icon = agent.icon;
-
-            return (
-              <button
-                key={agent.id}
-                type="button"
-                onClick={() => setSelectedAgent(agent.label)}
-                className={`
-                    flex-shrink-0
-
-                    cursor-pointer
-
-                    inline-flex
-                    items-center
-                    justify-center
-
-                    gap-1.5
-
-                    px-3
-                    py-2
-
-                    rounded-full
-
-                    text-xs
-                    font-medium
-
-                    border
-
-                    transition-all
-                    duration-150
-
-                    ${
-                      isActive
-                        ? `
-                          bg-gradient-to-r
-                          from-gray-600
-                          to-indigo-800
-
-                          text-white
-
-                          border-transparent
-
-                          shadow-[0_1px_8px_rgba(99,102,241,.35)]
-                        `
-                        : `
-                          bg-white/[0.03]
-                          text-slate-400
-                          border-white/[0.06]
-
-                          hover:bg-white/[0.07]
-                          hover:text-slate-200
-                        `
-                    }
-                  `}
-              >
-                <Icon
-                  size={14}
-                  className={isActive ? "text-white" : "text-slate-500"}
-                />
-
-                {agent.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* =================================================
-            FILE PREVIEW
-        ================================================= */}
-
-        {selectedFile && (
-          <div className="mt-1 sm:mt-2">
+          {selectedFile && (
             <div
               className="
-                inline-flex
-                items-center
+                absolute
 
-                gap-2
+                left-2
 
-                max-w-full
+                bottom-[48px]
 
-                rounded-xl
-
-                border
-                border-white/10
-
-                bg-white/[0.04]
-
-                px-2
-                sm:px-3
-
-                py-1.5
-                sm:py-2
+                z-20
               "
             >
-              {/* IMAGE */}
+              <div
+                className="
+                  flex
+                  items-center
 
-              {selectedFile.type?.startsWith("image/") ? (
-                <img
-                  src={previewUrl || ""}
-                  alt={selectedFile.name}
+                  gap-2
+
+                  rounded-xl
+
+                  border
+                  border-white/10
+
+                  bg-[#1b1d21]
+
+                  px-2
+
+                  py-1.5
+                "
+              >
+                {selectedFile.type?.startsWith(
+                  "image/"
+                ) ? (
+                  <img
+                    src={
+                      previewUrl || ""
+                    }
+                    alt={
+                      selectedFile.name
+                    }
+                    className="
+                      w-7
+                      h-7
+
+                      rounded-md
+
+                      object-cover
+                    "
+                  />
+                ) : (
+                  <div
+                    className="
+                      flex
+                      items-center
+                      justify-center
+
+                      w-7
+                      h-7
+
+                      rounded-md
+
+                      bg-red-500/10
+                    "
+                  >
+                    <FileTextIcon
+                      size={14}
+                      className="text-red-300"
+                    />
+                  </div>
+                )}
+
+                <span
                   className="
-                    w-8
-                    h-8
+                    max-w-[130px]
 
-                    sm:w-10
-                    sm:h-10
+                    truncate
 
-                    rounded-lg
+                    text-[10px]
 
-                    object-cover
-
-                    shrink-0
-
-                    border
-                    border-white/10
+                    text-slate-300
                   "
-                />
-              ) : (
-                <div
+                >
+                  {selectedFile.name}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={
+                    removeFile
+                  }
                   className="
                     flex
                     items-center
                     justify-center
 
-                    w-8
-                    h-8
+                    w-5
+                    h-5
 
-                    sm:w-10
-                    sm:h-10
-
-                    rounded-lg
-
-                    bg-red-500/10
-
-                    shrink-0
-                  "
-                >
-                  <FileTextIcon size={16} className="text-red-300" />
-                </div>
-              )}
-
-              {/* DETAILS */}
-
-              <div
-                className="
-                  min-w-0
-
-                  max-w-[150px]
-                  sm:max-w-[240px]
-                "
-              >
-                <p
-                  className="
-                    text-[10px]
-                    sm:text-xs
-
-                    text-white
-
-                    truncate
-                  "
-                >
-                  {selectedFile.name || "document"}
-                </p>
-
-                <p
-                  className="
-                    text-[9px]
-                    sm:text-[10px]
+                    rounded-full
 
                     text-slate-500
+
+                    hover:text-white
+
+                    cursor-pointer
                   "
                 >
-                  {Math.ceil(selectedFile.size / 1024)} KB
-                </p>
+                  <X size={12} />
+                </button>
               </div>
-
-              {/* REMOVE */}
-
-              <button
-                type="button"
-                onClick={removeFile}
-                className="
-                  flex
-                  items-center
-                  justify-center
-
-                  w-6
-                  h-6
-
-                  rounded-full
-
-                  text-slate-500
-
-                  hover:text-white
-                  hover:bg-white/[0.08]
-
-                  transition-all
-
-                  cursor-pointer
-
-                  shrink-0
-                "
-              >
-                <X size={14} />
-              </button>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* =================================================
-            TEXTAREA
-        ================================================= */}
+          {/* =================================================
+              TEXTAREA
+          ================================================= */}
 
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Ask Anything......."
-          rows={1}
-          className="
-            w-full
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={(e) => {
+              const newValue =
+                e.target.value;
 
-            min-h-[42px]
-            sm:min-h-[52px]
+              setValue(newValue);
 
-            max-h-[110px]
-            sm:max-h-[170px]
+              valueRef.current =
+                newValue;
+            }}
+            onKeyDown={
+              handleKeyDown
+            }
+            placeholder={
+              placeholders[
+                selectedAgent.toLowerCase()
+              ]
+            }
+            rows={1}
+            className="
+              flex-1
 
-            bg-transparent
+              min-w-0
 
-            outline-none
+              min-h-[40px]
 
-            resize-none
+              max-h-[90px]
 
-            text-[12px]
-            sm:text-[14px]
+              bg-transparent
 
-            text-slate-200
+              outline-none
 
-            placeholder:text-slate-600
+              resize-none
 
-            leading-relaxed
+              overflow-y-auto
 
-            py-2
+              text-[13px]
 
-            [scrollbar-width:none]
-            [&::-webkit-scrollbar]:hidden
-          "
-        />
+              sm:text-[14px]
 
-        {/* =================================================
-            BOTTOM ACTIONS
-        ================================================= */}
+              text-slate-100
 
-        <div
-          className="
-            flex
-            items-center
-            justify-between
+              placeholder:text-slate-500
 
-            pt-1
-          "
-        >
-          {/* LEFT */}
+              leading-[40px]
+
+              px-1
+
+              py-0
+
+              [scrollbar-width:none]
+              [&::-webkit-scrollbar]:hidden
+            "
+          />
+
+          {/* =================================================
+              ACTION BUTTONS
+
+              Paperclip + Mic + Send
+              remain in same row.
+          ================================================= */}
 
           <div
             className="
               flex
               items-center
 
-              gap-1
+              gap-0
+
+              shrink-0
             "
           >
+            {/* FILE INPUT */}
+
             <input
               type="file"
               accept=".pdf,image/*"
               hidden
               ref={fileRef}
-              onChange={handleFileChange}
+              onChange={
+                handleFileChange
+              }
             />
 
-            {/* ATTACHMENT */}
+            {/* =================================================
+                PAPERCLIP
+            ================================================= */}
 
             <button
               type="button"
               title="Attach file"
-              onClick={() => fileRef.current?.click()}
+              aria-label="Attach file"
+              onClick={() =>
+                fileRef.current?.click()
+              }
               className="
                 flex
                 items-center
                 justify-center
 
-                w-8
-                h-8
+                w-7
+                h-7
 
-                rounded-lg
+                sm:w-8
+                sm:h-8
 
-                text-slate-600
+                rounded-full
 
-                hover:text-slate-400
-                hover:bg-white/[0.05]
+                bg-transparent
+
+                text-slate-400
+
+                hover:bg-white/[0.06]
+
+                hover:text-slate-200
+
+                active:scale-95
 
                 transition-all
 
                 cursor-pointer
-
-                bg-transparent
               "
             >
-              <Paperclip size={16} />
+              <Paperclip
+                size={15}
+              />
             </button>
 
-            {/* MICROPHONE */}
+            {/* =================================================
+                MICROPHONE
+            ================================================= */}
 
             <button
               type="button"
-              title="Voice input"
-              className="
+              onClick={toggleMic}
+              title={
+                isListening
+                  ? "Stop listening"
+                  : "Voice input"
+              }
+              aria-label={
+                isListening
+                  ? "Stop listening"
+                  : "Voice input"
+              }
+              className={`
+                flex
+                items-center
+                justify-center
+
+                w-7
+                h-7
+
+                sm:w-8
+                sm:h-8
+
+                rounded-full
+
+                transition-all
+
+                cursor-pointer
+
+                ${
+                  isListening
+                    ? `
+                      bg-red-500/15
+
+                      text-red-400
+                    `
+                    : `
+                      bg-transparent
+
+                      text-slate-400
+
+                      hover:bg-white/[0.06]
+
+                      hover:text-slate-200
+                    `
+                }
+              `}
+            >
+              {isListening ? (
+                <MicOff
+                  size={15}
+                />
+              ) : (
+                <Mic size={15} />
+              )}
+            </button>
+
+            {/* =================================================
+                SEND BUTTON
+
+                FULLY ROUND
+            ================================================= */}
+
+            <button
+              type="button"
+              onClick={
+                handleSendMessage
+              }
+              disabled={
+                !value.trim() &&
+                !selectedFile
+              }
+              title="Send message"
+              aria-label="Send message"
+              className={`
                 flex
                 items-center
                 justify-center
@@ -966,74 +1594,49 @@ function ChatInput({ onGeneratingChange, onOpenArtifact }) {
                 w-8
                 h-8
 
-                rounded-lg
+                sm:w-9
+                sm:h-9
 
-                text-slate-600
+                ml-0.5
 
-                hover:text-slate-400
-                hover:bg-white/[0.05]
+                rounded-full
+
+                border-none
+
+                shrink-0
 
                 transition-all
+                duration-150
 
-                cursor-pointer
+                ${
+                  value.trim() ||
+                  selectedFile
+                    ? `
+                      bg-[#3b82f6]
 
-                bg-transparent
-              "
+                      text-white
+
+                      hover:bg-[#2563eb]
+
+                      active:scale-90
+
+                      cursor-pointer
+                    `
+                    : `
+                      bg-white/[0.07]
+
+                      text-slate-600
+
+                      cursor-not-allowed
+                    `
+                }
+              `}
             >
-              <Mic size={16} />
+              <Send
+                size={14}
+              />
             </button>
           </div>
-
-          {/* SEND */}
-
-          <button
-            type="button"
-            onClick={handleSendMessage}
-            disabled={!value.trim() && !selectedFile}
-            title="Send message"
-            className={`
-              flex
-              items-center
-              justify-center
-
-              w-8
-              h-8
-
-              rounded-lg
-
-              border-none
-
-              transition-all
-              duration-150
-
-              ${
-                value.trim() || selectedFile
-                  ? `
-                    bg-gradient-to-br
-                    from-indigo-500
-                    to-violet-700
-
-                    hover:opacity-90
-
-                    text-white
-
-                    cursor-pointer
-
-                    shadow-md
-                    shadow-indigo-500/20
-                  `
-                  : `
-                    bg-white/[0.05]
-
-                    text-slate-600
-
-                    cursor-not-allowed
-                  `
-              }
-            `}
-          >
-            <Send size={14} />
-          </button>
         </div>
       </div>
     </div>

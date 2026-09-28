@@ -5,13 +5,19 @@ import React, { useEffect, useState } from "react";
 import { FiExternalLink, FiX } from "react-icons/fi";
 
 import ReactMarkdown from "react-markdown";
+
 import remarkGfm from "remark-gfm";
 
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
-function MessageBox({ role, content, images = [], isLoading = false }) {
+function MessageBox({
+  role,
+  content,
+  images = [],
+  isLoading = false,
+}) {
   const isUser = role === "user";
 
   const [lightBox, setLightBox] = useState(null);
@@ -28,6 +34,10 @@ function MessageBox({ role, content, images = [], isLoading = false }) {
     "Generating",
   ];
 
+  /* =====================================================
+     THINKING STAGE ANIMATION
+  ===================================================== */
+
   useEffect(() => {
     if (!isLoading) {
       setThinkingStage(0);
@@ -35,11 +45,18 @@ function MessageBox({ role, content, images = [], isLoading = false }) {
     }
 
     const interval = setInterval(() => {
-      setThinkingStage((previous) => (previous + 1) % thinkingStages.length);
+      setThinkingStage(
+        (previous) =>
+          (previous + 1) % thinkingStages.length
+      );
     }, 1200);
 
     return () => clearInterval(interval);
   }, [isLoading]);
+
+  /* =====================================================
+     COPY CODE
+  ===================================================== */
 
   const copyCode = async (code) => {
     try {
@@ -56,46 +73,36 @@ function MessageBox({ role, content, images = [], isLoading = false }) {
   };
 
   /* =====================================================
-     LOADING MESSAGE
+     LOADING / THINKING MESSAGE
+
+     ChatGPT-style:
+     No large gray bubble.
   ===================================================== */
 
   if (isLoading) {
     return (
-      <div className="flex justify-start pt-1">
+      <div className="flex justify-start w-full pt-2 pb-1">
         <div
           className="
             flex
             items-center
             gap-2
 
-            px-3.5
-            sm:px-4
+            text-slate-400
 
-            py-2.5
-
-            rounded-2xl
-            rounded-tl-sm
-
-            bg-gradient-to-br
-            from-gray-500
-            to-gray-700
-
-            text-slate-200
-
-            border
-            border-white/[0.05]
-
-            shadow-sm
+            px-0
+            py-1
           "
         >
           {/* Animated dots */}
+
           <div className="flex items-center gap-1">
             <span
               className="
                 w-1.5
                 h-1.5
                 rounded-full
-                bg-indigo-300
+                bg-slate-400
                 animate-pulse
               "
             />
@@ -105,7 +112,7 @@ function MessageBox({ role, content, images = [], isLoading = false }) {
                 w-1.5
                 h-1.5
                 rounded-full
-                bg-indigo-300
+                bg-slate-400
                 animate-pulse
                 [animation-delay:150ms]
               "
@@ -116,19 +123,21 @@ function MessageBox({ role, content, images = [], isLoading = false }) {
                 w-1.5
                 h-1.5
                 rounded-full
-                bg-indigo-300
+                bg-slate-400
                 animate-pulse
                 [animation-delay:300ms]
               "
             />
           </div>
 
+          {/* Dynamic thinking text */}
+
           <span
             className="
-              text-[11px]
+              text-[12px]
               sm:text-[13px]
 
-              text-slate-300
+              text-slate-400
 
               min-w-[80px]
 
@@ -138,61 +147,91 @@ function MessageBox({ role, content, images = [], isLoading = false }) {
           >
             {thinkingStages[thinkingStage]}
 
-            <span className="inline-block w-5">...</span>
+            <span className="inline-block w-5">
+              ...
+            </span>
           </span>
         </div>
       </div>
     );
   }
 
+  /* =====================================================
+     NORMAL MESSAGE
+  ===================================================== */
+
   return (
     <>
       <div
         className={`
           flex
+          w-full
 
-          ${isUser ? "justify-end" : "justify-start"}
+          ${
+            isUser
+              ? "justify-end"
+              : "justify-start"
+          }
 
           pt-1
+          pb-1
         `}
       >
         <div
           className={`
-            w-fit
-
-            max-w-[92vw]
-            sm:max-w-[85%]
-            md:max-w-[72%]
-
-            px-3.5
-            sm:px-4
-
-            py-2
-
-            rounded-2xl
-
             break-words
             overflow-hidden
-
             leading-relaxed
 
             ${
               isUser
-                ? "bg-gradient-to-br from-indigo-400 to-indigo-600 text-white rounded-tr-sm"
-                : "bg-gradient-to-br from-gray-500 to-gray-700 text-slate-200 rounded-tl-sm"
+                ? `
+                  w-fit
+
+                  max-w-[92vw]
+                  sm:max-w-[85%]
+                  md:max-w-[72%]
+
+                  px-3.5
+                  sm:px-4
+
+                  py-2.5
+
+                  rounded-2xl
+                  rounded-tr-sm
+
+                  bg-[#2f2f2f]
+
+                  text-slate-100
+                `
+                : `
+                  w-full
+
+                  max-w-[92vw]
+                  sm:max-w-[85%]
+                  md:max-w-[78%]
+
+                  px-0
+                  py-2
+
+                  text-slate-200
+                `
             }
           `}
         >
-          {/* GENERATED IMAGES */}
+          {/* =================================================
+              GENERATED IMAGES
+          ================================================= */}
+
           {images.length > 0 && (
             <div
               className="
                 flex
                 flex-wrap
-
                 gap-2
 
                 mt-2
+                sm:mt-3
               "
             >
               {images.map((image, index) => (
@@ -200,95 +239,225 @@ function MessageBox({ role, content, images = [], isLoading = false }) {
                   key={index}
                   src={image}
                   alt={`generated-${index}`}
-                  onClick={() => setLightBox(image)}
-                  onError={(event) => event.currentTarget.remove()}
+                  onClick={() =>
+                    setLightBox(image)
+                  }
+                  onError={(event) =>
+                    event.currentTarget.remove()
+                  }
                   loading="lazy"
                   className="
-                      w-28
-                      h-20
+                    w-28
+                    h-20
 
-                      sm:w-40
-                      sm:h-28
+                    sm:w-40
+                    sm:h-28
 
-                      rounded-xl
+                    rounded-xl
 
-                      object-cover
+                    object-cover
 
-                      border
-                      border-white/10
+                    border
+                    border-white/10
 
-                      cursor-zoom-in
+                    cursor-zoom-in
 
-                      hover:opacity-90
+                    hover:opacity-90
 
-                      transition
-                    "
+                    transition
+                  "
                 />
               ))}
             </div>
           )}
 
+          {/* =================================================
+              MARKDOWN
+          ================================================= */}
+
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
+              /* =============================================
+                 HEADINGS
+              ============================================= */
+
               h1: ({ children }) => (
-                <h1 className="text-xl sm:text-2xl font-bold mt-5 mb-3">
+                <h1
+                  className="
+                    text-xl
+                    sm:text-2xl
+
+                    font-bold
+
+                    mt-5
+                    mb-3
+                  "
+                >
                   {children}
                 </h1>
               ),
 
               h2: ({ children }) => (
-                <h2 className="text-lg sm:text-xl font-semibold mt-4 mb-2">
+                <h2
+                  className="
+                    text-lg
+                    sm:text-xl
+
+                    font-semibold
+
+                    mt-4
+                    mb-2
+                  "
+                >
                   {children}
                 </h2>
               ),
 
               h3: ({ children }) => (
-                <h3 className="text-base sm:text-lg font-semibold mt-3 mb-2">
+                <h3
+                  className="
+                    text-base
+                    sm:text-lg
+
+                    font-semibold
+
+                    mt-3
+                    mb-2
+                  "
+                >
                   {children}
                 </h3>
               ),
 
+              /* =============================================
+                 PARAGRAPH
+              ============================================= */
+
               p: ({ children }) => (
-                <p className="mb-3 whitespace-pre-wrap break-words">
+                <p
+                  className="
+                    mb-3
+
+                    whitespace-pre-wrap
+                    break-words
+                  "
+                >
                   {children}
                 </p>
               ),
 
+              /* =============================================
+                 UNORDERED LIST
+              ============================================= */
+
               ul: ({ children }) => (
-                <ul className="list-disc pl-5 space-y-1 my-2">{children}</ul>
+                <ul
+                  className="
+                    list-disc
+                    pl-5
+
+                    space-y-1
+
+                    my-2
+                  "
+                >
+                  {children}
+                </ul>
               ),
+
+              /* =============================================
+                 ORDERED LIST
+              ============================================= */
 
               ol: ({ children }) => (
-                <ol className="list-decimal pl-5 space-y-1 my-2">{children}</ol>
+                <ol
+                  className="
+                    list-decimal
+                    pl-5
+
+                    space-y-1
+
+                    my-2
+                  "
+                >
+                  {children}
+                </ol>
               ),
 
+              /* =============================================
+                 TABLE
+              ============================================= */
+
               table: ({ children }) => (
-                <div className="overflow-x-auto my-4">
-                  <table className="min-w-full border border-white/10">
+                <div
+                  className="
+                    overflow-x-auto
+                    my-4
+                  "
+                >
+                  <table
+                    className="
+                      min-w-full
+
+                      border
+                      border-white/10
+                    "
+                  >
                     {children}
                   </table>
                 </div>
               ),
 
               th: ({ children }) => (
-                <th className="border border-white/10 bg-white/5 px-3 py-2 text-left">
+                <th
+                  className="
+                    border
+                    border-white/10
+
+                    bg-white/5
+
+                    px-3
+                    py-2
+
+                    text-left
+                  "
+                >
                   {children}
                 </th>
               ),
 
               td: ({ children }) => (
-                <td className="border border-white/10 px-3 py-2">{children}</td>
+                <td
+                  className="
+                    border
+                    border-white/10
+
+                    px-3
+                    py-2
+                  "
+                >
+                  {children}
+                </td>
               ),
 
-              a: ({ href, children }) => (
+              /* =============================================
+                 LINKS
+              ============================================= */
+
+              a: ({
+                href,
+                children,
+              }) => (
                 <a
                   href={href}
                   target="_blank"
                   rel="noreferrer"
                   className="
                     text-indigo-400
+
                     underline
+
                     inline-flex
                     items-center
                     gap-1
@@ -296,9 +465,15 @@ function MessageBox({ role, content, images = [], isLoading = false }) {
                 >
                   {children}
 
-                  <FiExternalLink size={11} />
+                  <FiExternalLink
+                    size={11}
+                  />
                 </a>
               ),
+
+              /* =============================================
+                 MARKDOWN IMAGES
+              ============================================= */
 
               img: ({ src }) => {
                 if (!src) return null;
@@ -308,8 +483,12 @@ function MessageBox({ role, content, images = [], isLoading = false }) {
                     src={src}
                     alt="markdown"
                     loading="lazy"
-                    onClick={() => setLightBox(src)}
-                    onError={(event) => event.currentTarget.remove()}
+                    onClick={() =>
+                      setLightBox(src)
+                    }
+                    onError={(event) =>
+                      event.currentTarget.remove()
+                    }
                     className="
                       max-w-full
 
@@ -326,11 +505,27 @@ function MessageBox({ role, content, images = [], isLoading = false }) {
                 );
               },
 
-              code({ className, children }) {
-                const value = String(children)
-                  .replace(/^\s*```\w*\s*/, "")
-                  .replace(/\s*```\s*$/, "")
-                  .trim();
+              /* =============================================
+                 CODE
+              ============================================= */
+
+              code({
+                className,
+                children,
+              }) {
+                const value =
+                  String(children)
+                    .replace(
+                      /^\s*```\w*\s*/,
+                      ""
+                    )
+                    .replace(
+                      /\s*```\s*$/,
+                      ""
+                    )
+                    .trim();
+
+                /* INLINE CODE */
 
                 if (!className) {
                   return (
@@ -338,6 +533,7 @@ function MessageBox({ role, content, images = [], isLoading = false }) {
                       className="
                         px-1.5
                         py-0.5
+
                         rounded
 
                         bg-white/10
@@ -352,7 +548,13 @@ function MessageBox({ role, content, images = [], isLoading = false }) {
                   );
                 }
 
-                const language = className.replace("language-", "");
+                /* CODE BLOCK */
+
+                const language =
+                  className.replace(
+                    "language-",
+                    ""
+                  );
 
                 return (
                   <div
@@ -370,6 +572,8 @@ function MessageBox({ role, content, images = [], isLoading = false }) {
                       bg-[#111318]
                     "
                   >
+                    {/* Code Header */}
+
                     <div
                       className="
                         flex
@@ -392,8 +596,10 @@ function MessageBox({ role, content, images = [], isLoading = false }) {
                       <span
                         className="
                           uppercase
+
                           text-[10px]
                           sm:text-xs
+
                           text-slate-400
                         "
                       >
@@ -402,7 +608,9 @@ function MessageBox({ role, content, images = [], isLoading = false }) {
 
                       <button
                         type="button"
-                        onClick={() => copyCode(value)}
+                        onClick={() =>
+                          copyCode(value)
+                        }
                         className="
                           flex
                           items-center
@@ -411,26 +619,44 @@ function MessageBox({ role, content, images = [], isLoading = false }) {
                           text-[10px]
                           sm:text-xs
 
+                          text-slate-400
+
                           cursor-pointer
 
                           hover:text-indigo-400
+
+                          transition-colors
                         "
                       >
-                        {copiedCode === value ? (
+                        {copiedCode ===
+                        value ? (
                           <>
-                            <Check size={14} />
+                            <Check
+                              size={14}
+                            />
+
                             Copied
                           </>
                         ) : (
                           <>
-                            <Copy size={14} />
+                            <Copy
+                              size={14}
+                            />
+
                             Copy
                           </>
                         )}
                       </button>
                     </div>
 
-                    <div className="max-w-full overflow-x-auto">
+                    {/* Code */}
+
+                    <div
+                      className="
+                        max-w-full
+                        overflow-x-auto
+                      "
+                    >
                       <SyntaxHighlighter
                         language={language}
                         style={oneDark}
@@ -439,7 +665,8 @@ function MessageBox({ role, content, images = [], isLoading = false }) {
                         customStyle={{
                           margin: 0,
                           padding: "14px",
-                          background: "#0d1117",
+                          background:
+                            "#0d1117",
                           fontSize: "12px",
                         }}
                       >
@@ -456,7 +683,10 @@ function MessageBox({ role, content, images = [], isLoading = false }) {
         </div>
       </div>
 
-      {/* IMAGE LIGHTBOX */}
+      {/* =================================================
+          IMAGE LIGHTBOX
+      ================================================= */}
+
       {lightBox && (
         <div
           className="
@@ -474,11 +704,15 @@ function MessageBox({ role, content, images = [], isLoading = false }) {
             p-4
             sm:p-6
           "
-          onClick={() => setLightBox(null)}
+          onClick={() =>
+            setLightBox(null)
+          }
         >
           <button
             type="button"
-            onClick={() => setLightBox(null)}
+            onClick={() =>
+              setLightBox(null)
+            }
             className="
               absolute
 
@@ -507,7 +741,9 @@ function MessageBox({ role, content, images = [], isLoading = false }) {
           <img
             src={lightBox}
             alt="preview"
-            onClick={(event) => event.stopPropagation()}
+            onClick={(event) =>
+              event.stopPropagation()
+            }
             className="
               max-w-[92vw]
               max-h-[85vh]
